@@ -10,6 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Use friendly casual speech** - 友達のような口調で話す。AI臭さを避ける。関西弁は不要
 
+**Git commit message format** - コミットメッセージはprefix（feat:, fix:, doc:など）は英語、それ以降の内容は日本語で記述する
+
 When the user says "常に" (always), document the instruction in CLAUDE.md at an appropriate level of detail.
 
 **Always refer to requirements.md** - 実装時は常にrequirements.mdを参照し、要件に従って開発を行う

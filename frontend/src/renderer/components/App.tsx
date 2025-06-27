@@ -10,69 +10,13 @@ import ProgressBar from './ProgressBar';
 import ImageGrid from './ImageGrid';
 import SettingsModal from './SettingsModal';
 import { getImages, classifyImages, undoClassification, ApiError } from '../../services/api';
+import { useSettings } from '../../hooks/useSettings';
 
 
-const DEFAULT_SETTINGS: AppSettings = {
-  targetFolder: null,
-  classLabels: ['テキスト', '図表', '写真'],
-  gridCols: 10,
-  gridRows: 10,
-};
-
-const DEFAULT_CLASS_COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
-
-// 設定の永続化
-const STORAGE_KEYS = {
-  SETTINGS: 'image-sorter-settings',
-  CLASS_ITEMS: 'image-sorter-class-items',
-};
-
-const loadSettings = (): AppSettings => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    if (stored) {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
-    }
-  } catch (error) {
-    console.error('設定読み込みエラー:', error);
-  }
-  return DEFAULT_SETTINGS;
-};
-
-const loadClassItems = (): ClassItem[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEYS.CLASS_ITEMS);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error('クラス設定読み込みエラー:', error);
-  }
-  return DEFAULT_SETTINGS.classLabels.map((label, index) => ({
-    id: `class-${index}`,
-    name: label,
-    color: DEFAULT_CLASS_COLORS[index % DEFAULT_CLASS_COLORS.length],
-    order: index,
-  }));
-};
-
-const saveSettings = (settings: AppSettings) => {
-  try {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-  } catch (error) {
-    console.error('設定保存エラー:', error);
-  }
-};
-
-const saveClassItems = (classItems: ClassItem[]) => {
-  try {
-    localStorage.setItem(STORAGE_KEYS.CLASS_ITEMS, JSON.stringify(classItems));
-  } catch (error) {
-    console.error('クラス設定保存エラー:', error);
-  }
-};
 
 const App: React.FC = () => {
+  const { settings, classItems, updateSettings, updateClassItems, updateBoth } = useSettings();
+  
   const [appState, setAppState] = useState<AppState>({
     currentFolder: null,
     images: [],
@@ -80,21 +24,16 @@ const App: React.FC = () => {
     imageStates: {},
     totalProcessed: 0,
     lastMoveData: null,
-    settings: loadSettings(),
+    settings,
   });
 
-  const [classItems, setClassItems] = useState<ClassItem[]>(loadClassItems());
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'main' | 'settings'>('main');
 
-  // Settings sync effect - update classLabels when classItems change
+  // settings変更時にappState.settingsも同期
   useEffect(() => {
-    const classLabels = classItems.map(item => item.name);
-    setAppState(prev => ({
-      ...prev,
-      settings: { ...prev.settings, classLabels }
-    }));
-  }, [classItems]);
+    setAppState(prev => ({ ...prev, settings }));
+  }, [settings]);
 
   const handleFolderSelect = async () => {
     try {
@@ -270,16 +209,9 @@ const App: React.FC = () => {
   };
 
   const handleSaveSettings = (newSettings: AppSettings, newClassItems: ClassItem[]) => {
-    setAppState(prev => ({
-      ...prev,
-      settings: newSettings,
-    }));
-    setClassItems(newClassItems);
+    // フックを使って設定を更新（永続化も自動で行われる）
+    updateBoth(newSettings, newClassItems);
     setActiveTab('main');
-
-    // 設定を永続化
-    saveSettings(newSettings);
-    saveClassItems(newClassItems);
 
     // グリッドサイズが変更された場合、現在のバッチを再計算
     if (
