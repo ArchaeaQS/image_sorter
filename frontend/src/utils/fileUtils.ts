@@ -35,7 +35,11 @@ export const selectFolder = async (): Promise<string | null> => {
  */
 export const getFolderName = (folderPath: string | null): string => {
   if (!folderPath) return 'フォルダが選択されていません';
-  return folderPath.split(/[/\\]/).pop() || 'Unknown';
+  
+  // 末尾のスラッシュを削除してから分割
+  const cleanPath = folderPath.replace(/[/\\]+$/, '');
+  const parts = cleanPath.split(/[/\\]/);
+  return parts.pop() || 'Unknown';
 };
 
 /**

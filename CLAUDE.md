@@ -12,6 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Git commit message format** - コミットメッセージはprefix（feat:, fix:, doc:など）は英語、それ以降の内容は日本語で記述する
 
+**Test requirements alignment** - テストは要件ファイルの機能要求に基づいて作成する。実装の詳細に依存したテストや、テストを通すためだけの実装修正は避ける。実装にバグがある場合はバグを修正してからテストを書く
+
 When the user says "常に" (always), document the instruction in CLAUDE.md at an appropriate level of detail.
 
 **Always refer to requirements.md** - 実装時は常にrequirements.mdを参照し、要件に従って開発を行う
