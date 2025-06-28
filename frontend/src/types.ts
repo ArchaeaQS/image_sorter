@@ -2,9 +2,22 @@
  * Type definitions for the Image Sorter React application
  */
 
+// Image related types
 export interface ImageInfo {
   path: string;
   filename: string;
+}
+
+export interface ImageState {
+  [imagePath: string]: number; // クラスインデックス (0: 最初のクラス, 1: 2番目のクラス, ...)
+}
+
+// Classification related types
+export interface ClassItem {
+  id: string;
+  name: string;
+  color: string;
+  order: number;
 }
 
 export interface ClassifyRequest {
@@ -23,21 +36,22 @@ export interface MovedFile {
   destination: string;
 }
 
-export interface FolderRequest {
-  folder_path: string;
-}
-
+// Settings and configuration types
 export interface AppSettings {
   targetFolder: string | null;
   classLabels: string[];
   gridCols: number;
   gridRows: number;
+  thumbnailHeight?: number; // サムネイル高さ(px)
+  thumbnailWidth?: number; // サムネイル幅(px)
 }
 
-export interface ImageState {
-  [imagePath: string]: number; // クラスインデックス (0: 未分類, 1+: 分類済み)
+// API request types
+export interface FolderRequest {
+  folder_path: string;
 }
 
+// Application state types
 export interface AppState {
   currentFolder: string | null;
   images: ImageInfo[];
@@ -46,11 +60,4 @@ export interface AppState {
   totalProcessed: number;
   lastMoveData: MovedFile[] | null;
   settings: AppSettings;
-}
-
-export interface ClassItem {
-  id: string;
-  name: string;
-  color: string;
-  order: number;
 }

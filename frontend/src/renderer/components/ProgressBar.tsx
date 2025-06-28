@@ -4,7 +4,7 @@
 
 import React from 'react';
 
-interface ProgressBarProps {
+export interface ProgressBarProps {
   current: number;
   total: number;
   percentage: number;

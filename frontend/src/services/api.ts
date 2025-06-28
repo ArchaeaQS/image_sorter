@@ -67,29 +67,20 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 /**
- * Get images from specified folder
+ * Check if folder exists using Electron IPC
  */
-export async function getImages(folderPath: string): Promise<ImageInfo[]> {
-  try {
-    // UTF-8エンコーディングを明示的に指定
-    const response = await fetch(`${API_BASE_URL}/get-images`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-      },
-      body: JSON.stringify({
-        folder_path: encodeURIComponent(folderPath),
-      }),
-    });
+export const checkFolderExists = async (folderPath: string): Promise<boolean> => {
+  const { ipcRenderer } = window.require('electron');
+  return await ipcRenderer.invoke('check-folder-exists', folderPath);
+};
 
-    return await handleResponse<ImageInfo[]>(response);
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError(`画像取得に失敗しました: ${error}`);
-  }
-}
+/**
+ * Get images from specified folder using Electron IPC
+ */
+export const getImages = async (folderPath: string): Promise<ImageInfo[]> => {
+  const { ipcRenderer } = window.require('electron');
+  return await ipcRenderer.invoke('get-images', folderPath);
+};
 
 /**
  * Classify images and move them to label-specific folders

@@ -7,3 +7,5 @@ build/
 .env
 .claude/
 __pycache__/
+.memo/
+.diary/

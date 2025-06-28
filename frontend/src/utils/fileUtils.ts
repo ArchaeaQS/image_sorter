@@ -3,32 +3,50 @@
  */
 
 /**
- * Select folder using web-based folder selection
+ * Select folder using Electron native dialog or web-based fallback
  */
 export const selectFolder = async (): Promise<string | null> => {
-  return new Promise((resolve) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.webkitdirectory = true;
-    input.multiple = true;
+  try {
+    // ElectronのIPCを使ってネイティブダイアログを表示
+    const { ipcRenderer } = window.require('electron');
+    const folderPath = await ipcRenderer.invoke('select-folder');
     
-    input.onchange = (event) => {
-      const files = (event.target as HTMLInputElement).files;
-      if (files && files.length > 0) {
-        const firstFile = files[0];
-        // UTF-8エンコーディングを保持してフォルダパスを取得
-        const folderPath = decodeURIComponent(firstFile.webkitRelativePath.split('/')[0]);
-        resolve(folderPath);
-      } else {
-        resolve(null);
-      }
-    };
+    if (folderPath) {
+      console.log('📂 ネイティブダイアログで選択:', folderPath);
+      return folderPath;
+    }
     
-    // ユーザーがキャンセルした場合
-    input.oncancel = () => resolve(null);
+    return null;
+  } catch (error) {
+    console.error('❌ ネイティブダイアログエラー:', error);
+    console.log('🔄 Webベースのフォルダ選択にフォールバック');
     
-    input.click();
-  });
+    // フォールバック: Webベースのフォルダ選択
+    return new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.webkitdirectory = true;
+      input.multiple = true;
+      
+      input.onchange = (event) => {
+        const files = (event.target as HTMLInputElement).files;
+        if (files && files.length > 0) {
+          const firstFile = files[0];
+          // フォルダ名のみ（Webベースの制限）
+          const folderName = decodeURIComponent(firstFile.webkitRelativePath.split('/')[0]);
+          console.log('📂 Webベースで選択:', folderName);
+          resolve(folderName);
+        } else {
+          resolve(null);
+        }
+      };
+      
+      // ユーザーがキャンセルした場合
+      input.oncancel = () => resolve(null);
+      
+      input.click();
+    });
+  }
 };
 
 /**

@@ -70,6 +70,24 @@ npm start
 - `npm run watch:main` (in frontend/) - Watch main process changes
 - `npm run watch:renderer` (in frontend/) - Watch renderer changes
 
+### Distribution (配布用ビルド)
+**ワンクリック配布ビルド** - プロジェクトルートで実行:
+- `./build-distribution.sh` (Linux/macOS) - 完全スタンドアロン配布版作成
+- `build-distribution.bat` (Windows) - 完全スタンドアロン配布版作成
+
+これらのスクリプトは以下を自動実行します:
+1. バックエンドをPyInstallerで実行ファイル化
+2. フロントエンドのElectronアプリビルド  
+3. 両方を統合して配布用パッケージ作成
+4. 配布ファイルは `frontend/release/` に出力
+
+**配布ファイル**:
+- Linux: `Image Sorter-1.0.0.AppImage`
+- Windows: `Image Sorter Setup 1.0.0.exe`
+- macOS: `Image Sorter-1.0.0.dmg`
+
+**特徴**: 配布先でPythonインストール不要（完全スタンドアロン）
+
 ### Code Quality
 - `uv run black main.py` (in backend/) - Format Python code
 - `uv run flake8 main.py` (in backend/) - Lint Python code

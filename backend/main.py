@@ -111,6 +111,17 @@ def safe_path_encode(path_obj: Path) -> str:
         return str(path_obj).encode('utf-8', errors='replace').decode('utf-8')
 
 
+def normalize_path(path_str: str) -> str:
+    """
+    WindowsパスとWSLパスを正規化する
+    """
+    # WindowsパスをWSLパスに変換
+    if path_str.startswith('C:\\'):
+        # C:\... -> /mnt/c/...
+        return path_str.replace('C:\\', '/mnt/c/').replace('\\', '/')
+    return path_str
+
+
 @app.post("/get-images")
 async def get_images(request: FolderRequest) -> list[ImageInfo]:
     """
@@ -126,9 +137,10 @@ async def get_images(request: FolderRequest) -> list[ImageInfo]:
         HTTPException: If folder doesn't exist
     """
     try:
-        # パスを安全にデコード
+        # パスを安全にデコードして正規化
         decoded_path = safe_path_decode(request.folder_path)
-        folder_path = Path(decoded_path)
+        normalized_path = normalize_path(decoded_path)
+        folder_path = Path(normalized_path)
 
         if not folder_path.exists():
             raise HTTPException(status_code=404, detail="指定されたフォルダが存在しません")

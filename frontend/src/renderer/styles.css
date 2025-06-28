@@ -36,132 +36,40 @@
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   margin: 0;
-  padding: 24px;
+  padding: 0; /* パディングを削除 */
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
   user-select: none;
   font-feature-settings: 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow: hidden; /* スクロールバーを非表示 */
 }
 
 .app-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  background: var(--background-primary);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-}
-
-/* Header styles */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 32px;
-  background: linear-gradient(135deg, var(--background-primary) 0%, var(--background-secondary) 100%);
-  border-bottom: 1px solid var(--border-color);
-}
-
-/* Tab Navigation */
-.tab-navigation {
-  display: flex;
-  justify-content: center;
-  background: var(--background-secondary);
-  border-bottom: 1px solid var(--border-color);
-  padding: 0 32px;
-}
-
-.tab-nav-btn {
-  padding: 12px 24px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  border-bottom: 3px solid transparent;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tab-nav-btn:hover {
-  background: var(--background-primary);
-  color: var(--text-primary);
-}
-
-.tab-nav-btn.active {
-  color: var(--primary-color);
-  border-bottom-color: var(--primary-color);
-  background: var(--background-primary);
-}
-
-.header h2 {
+  width: 100vw; /* 画面幅いっぱい */
+  height: 100vh; /* 画面高さいっぱい */
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.header-controls {
-  display: flex;
-  gap: 12px;
-}
-
-/* Quick info bar */
-.quick-info {
-  display: flex;
-  gap: 24px;
-  padding: 24px 32px;
-  background: var(--background-secondary);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.info-item {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 12px 16px;
   background: var(--background-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-color);
-  transition: all 0.2s ease;
+  border-radius: 0; /* 角丸を削除 */
+  box-shadow: none; /* 影を削除 */
+  overflow: auto; /* 必要に応じてスクロール */
+  display: flex;
+  flex-direction: column;
 }
 
-.info-item:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--border-hover);
-}
 
-.info-item label {
-  font-weight: 600;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.info-item span {
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  font-weight: 500;
-}
 
 /* Button styles */
 button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
+  gap: 6px;
+  padding: 8px 16px;
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   font-family: inherit;
   transition: all 0.2s ease;
@@ -223,14 +131,14 @@ button:focus-visible {
 
 /* Main content area */
 .main-content {
-  padding: 0 32px 32px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px 16px;
+  min-height: 0;
 }
 
 /* Settings content */
-.settings-content {
-  padding: 32px;
-}
-
 .inline-settings {
   width: 100%;
   max-width: none;
@@ -243,32 +151,20 @@ button:focus-visible {
   padding: 0;
 }
 
-.inline-footer {
-  padding: 24px 0;
-  text-align: center;
-  border-top: 1px solid var(--border-color);
-  margin-top: 24px;
-}
-
 /* Controls bar */
 .controls {
   display: flex;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   align-items: center;
-  padding: 20px;
+  padding: 12px;
   background: var(--background-secondary);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
 }
 
 /* Progress bar */
 .progress-section {
-  margin-bottom: 24px;
-  padding: 20px;
+  padding: 8px;
   background: var(--background-primary);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
 }
 
 .status {
@@ -314,22 +210,24 @@ button:focus-visible {
 /* Image grid */
 .image-grid {
   display: grid;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding: 24px;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 16px;
   background: var(--background-primary);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .image-item {
   position: relative;
-  border: 3px solid transparent;
-  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
   background: var(--background-primary);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
 }
@@ -347,9 +245,12 @@ button:focus-visible {
 .image-item img {
   width: 100%;
   height: 160px;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   display: block;
   transition: transform 0.3s ease;
+  background: var(--background-secondary);
+  padding: 2px;
 }
 
 .image-item:hover img {
@@ -389,7 +290,7 @@ button:focus-visible {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999; /* 最前面に表示 */
 }
 
 .modal-content {
@@ -527,11 +428,156 @@ button:focus-visible {
   color: #666;
   flex: 1;
   word-break: break-all;
+  background: var(--background-tertiary);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* App header layout */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--background-primary);
+  gap: 16px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.current-folder-display {
+  flex: 1;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.folder-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.current-folder-display .folder-path {
+  background: var(--background-tertiary);
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 12px;
+  flex: 1;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.settings-btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Action buttons layout */
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 0 16px;
+}
+
+.action-buttons .primary-btn,
+.action-buttons .secondary-btn {
+  flex: 0 0 auto;
+  min-width: 100px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* Image grid container and legend */
+.image-grid-container {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.class-legend {
+  background: var(--background-primary);
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.legend-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-right: 16px;
+  margin-bottom: 0;
+}
+
+.legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.legend-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
 /* Class management */
 .class-controls {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .add-class {
@@ -559,19 +605,42 @@ button:focus-visible {
 .class-item {
   display: flex;
   align-items: center;
-  padding: 12px;
+  padding: 8px;
   border-bottom: 1px solid #eee;
-  gap: 12px;
+  gap: 8px;
   background-color: white;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  cursor: move;
+  user-select: none;
+}
+
+.class-item.dragging {
+  opacity: 0.6;
+  background-color: #f8f9fa;
+  transform: scale(1.02) rotate(1deg);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.drag-handle {
+  font-size: 12px;
+  color: #999;
+  cursor: grab;
+  padding: 4px;
+  line-height: 1;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }
 
 .class-item:last-child {
   border-bottom: none;
 }
 
-.class-item:hover {
+.class-item:hover:not(.dragging) {
   background-color: #f8f9fa;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .class-color {

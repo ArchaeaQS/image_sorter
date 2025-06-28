@@ -10,6 +10,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   classLabels: ['テキスト', '図表', '写真'],
   gridCols: 10,
   gridRows: 10,
+  thumbnailHeight: 160,
+  thumbnailWidth: 160,
 };
 
 const DEFAULT_CLASS_COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];

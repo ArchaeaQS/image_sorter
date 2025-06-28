@@ -38,16 +38,21 @@ describe('App Integration Tests', () => {
       render(<App />);
 
       // 設定タブに切り替え
-      const settingsTab = screen.getByText('⚙️ 設定');
-      fireEvent.click(settingsTab);
+      await waitFor(() => {
+        expect(screen.queryByText('⏳ 設定読み込み中...')).not.toBeInTheDocument();
+      });
+      
+      const settingsBtn = screen.getByText('⚙️ 設定');
+      fireEvent.click(settingsBtn);
 
       // グリッド設定を変更
       const colsInput = screen.getAllByDisplayValue('10')[0]; // 最初の要素（列数）
       fireEvent.change(colsInput, { target: { value: '5' } });
 
       // 設定を保存してメインタブに戻る
-      const saveBtn = screen.getByText('💾 保存してメインに戻る');
-      fireEvent.click(saveBtn);
+      // 自動保存なので設定を閉じるだけ
+      const closeBtn = screen.getByText('×');
+      fireEvent.click(closeBtn);
 
       // メインタブに戻ったことを確認
       expect(screen.getByText('📋 メイン')).toHaveClass('active');
@@ -61,8 +66,12 @@ describe('App Integration Tests', () => {
       render(<App />);
 
       // 設定タブに切り替え
-      const settingsTab = screen.getByText('⚙️ 設定');
-      fireEvent.click(settingsTab);
+      await waitFor(() => {
+        expect(screen.queryByText('⏳ 設定読み込み中...')).not.toBeInTheDocument();
+      });
+      
+      const settingsBtn = screen.getByText('⚙️ 設定');
+      fireEvent.click(settingsBtn);
 
       // グリッド設定を変更
       const gridInputs = screen.getAllByDisplayValue('10');
@@ -70,8 +79,9 @@ describe('App Integration Tests', () => {
       fireEvent.change(colsInput, { target: { value: '6' } });
 
       // 設定を保存
-      const saveBtn = screen.getByText('💾 保存してメインに戻る');
-      fireEvent.click(saveBtn);
+      // 自動保存なので設定を閉じるだけ
+      const closeBtn = screen.getByText('×');
+      fireEvent.click(closeBtn);
 
       // localStorageに保存されることを確認
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
@@ -130,14 +140,19 @@ describe('App Integration Tests', () => {
       render(<App />);
 
       // 設定でフォルダ選択
-      const settingsTab = screen.getByText('⚙️ 設定');
-      fireEvent.click(settingsTab);
+      await waitFor(() => {
+        expect(screen.queryByText('⏳ 設定読み込み中...')).not.toBeInTheDocument();
+      });
+      
+      const settingsBtn = screen.getByText('⚙️ 設定');
+      fireEvent.click(settingsBtn);
 
       const folderSelectBtn = screen.getByText('📂 選択');
       fireEvent.click(folderSelectBtn);
 
-      const saveBtn = screen.getByText('💾 保存してメインに戻る');
-      fireEvent.click(saveBtn);
+      // 自動保存なので設定を閉じるだけ
+      const closeBtn = screen.getByText('×');
+      fireEvent.click(closeBtn);
 
       // 画像読み込みでエラー発生
       const loadBtn = screen.getByText('🔄 画像読み込み');
@@ -156,11 +171,15 @@ describe('App Integration Tests', () => {
 
       render(<App />);
 
-      // フォルダを選択せずに画像読み込みを試行
-      const loadBtn = screen.getByText('🔄 画像読み込み');
-      fireEvent.click(loadBtn);
-
-      expect(mockAlert).toHaveBeenCalledWith('フォルダを選択してください');
+      // 自動読み込み機能で読み込みを試行（フォルダ未選択状態では読み込みが発生しない）
+      // フォルダが選択されていない状態では自動読み込みは動作しないことを確認
+      await waitFor(() => {
+        expect(screen.queryByText('⏳ 設定読み込み中...')).not.toBeInTheDocument();
+      });
+      
+      // 分類ボタンがdisabledになっていることを確認
+      const classifyBtn = screen.getByText('✨ 分類実行');
+      expect(classifyBtn).toBeDisabled();
 
       mockAlert.mockRestore();
     });
@@ -171,8 +190,12 @@ describe('App Integration Tests', () => {
       // 要件: 設定変更がブラウザに永続化される
       render(<App />);
 
-      const settingsTab = screen.getByText('⚙️ 設定');
-      fireEvent.click(settingsTab);
+      await waitFor(() => {
+        expect(screen.queryByText('⏳ 設定読み込み中...')).not.toBeInTheDocument();
+      });
+      
+      const settingsBtn = screen.getByText('⚙️ 設定');
+      fireEvent.click(settingsBtn);
 
       // グリッド設定を変更
       const gridInputs = screen.getAllByDisplayValue('10');
@@ -183,8 +206,9 @@ describe('App Integration Tests', () => {
       fireEvent.change(rowsInput, { target: { value: '6' } });
 
       // 設定を保存
-      const saveBtn = screen.getByText('💾 保存してメインに戻る');
-      fireEvent.click(saveBtn);
+      // 自動保存なので設定を閉じるだけ
+      const closeBtn = screen.getByText('×');
+      fireEvent.click(closeBtn);
 
       // localStorageに保存されることを確認
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
@@ -197,7 +221,7 @@ describe('App Integration Tests', () => {
       );
     });
 
-    it('アプリ起動時にlocalStorageから設定が復元される', () => {
+    it('アプリ起動時にlocalStorageから設定が復元される', async () => {
       // 要件: アプリ再起動時の設定復元
       const savedSettings = JSON.stringify({
         targetFolder: '/saved/folder',
@@ -213,8 +237,12 @@ describe('App Integration Tests', () => {
 
       render(<App />);
 
-      const settingsTab = screen.getByText('⚙️ 設定');
-      fireEvent.click(settingsTab);
+      await waitFor(() => {
+        expect(screen.queryByText('⏳ 設定読み込み中...')).not.toBeInTheDocument();
+      });
+      
+      const settingsBtn = screen.getByText('⚙️ 設定');
+      fireEvent.click(settingsBtn);
 
       // 保存された設定が復元されていることを確認
       expect(screen.getByDisplayValue('5')).toBeInTheDocument(); // gridCols

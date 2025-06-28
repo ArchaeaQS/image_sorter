@@ -36,14 +36,14 @@ export const useImageBatch = (): UseImageBatchReturn => {
 
   const toggleImageState = useCallback((imagePath: string, direction: number, maxState: number) => {
     setImageStates(prev => {
-      const currentState = prev[imagePath] || 0;
+      const currentState = prev[imagePath] || 0; // デフォルトを0に戻す
       let newState: number;
       
       if (direction > 0) {
-        newState = (currentState + 1) % (maxState + 1);
+        newState = (currentState + 1) % maxState; // 0からmaxState-1まで循環
       } else {
         newState = currentState - 1;
-        if (newState < 0) newState = maxState;
+        if (newState < 0) newState = maxState - 1; // 0未満になったら最大値-1に
       }
       
       return {

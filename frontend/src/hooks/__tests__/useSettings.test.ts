@@ -33,6 +33,8 @@ describe('useSettings', () => {
       classLabels: ['テキスト', '図表', '写真'],
       gridCols: 10,
       gridRows: 10,
+      thumbnailHeight: 160,
+      thumbnailWidth: 160,
     });
 
     expect(result.current.classItems).toHaveLength(3);
@@ -147,6 +149,8 @@ describe('useSettings', () => {
       classLabels: ['テキスト', '図表', '写真'],
       gridCols: 10,
       gridRows: 10,
+      thumbnailHeight: 160,
+      thumbnailWidth: 160,
     });
   });
 });

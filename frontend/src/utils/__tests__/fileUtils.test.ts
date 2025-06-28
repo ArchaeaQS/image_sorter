@@ -3,6 +3,7 @@
  */
 
 import { getFolderName, isValidFolderPath } from '../fileUtils';
+import { convertPathForElectron, normalizePath, getFilename } from '../pathUtils';
 
 describe('fileUtils', () => {
   describe('getFolderName', () => {
@@ -29,6 +30,36 @@ describe('fileUtils', () => {
       expect(isValidFolderPath(null)).toBe(false);
       expect(isValidFolderPath('')).toBe(false);
       expect(isValidFolderPath('   ')).toBe(false);
+    });
+  });
+
+  describe('pathUtils', () => {
+    describe('convertPathForElectron', () => {
+      it('WSLパスをWindowsパスに変換する', () => {
+        // 要件: WSL環境でのElectron画像表示対応
+        expect(convertPathForElectron('/mnt/c/Users/test/images/image.jpg'))
+          .toBe('C:\\Users\\test\\images\\image.jpg');
+        
+        // 非WSLパスはそのまま
+        expect(convertPathForElectron('/home/user/image.jpg'))
+          .toBe('/home/user/image.jpg');
+      });
+    });
+
+    describe('normalizePath', () => {
+      it('パス区切り文字を正規化する', () => {
+        expect(normalizePath('path\\to\\file')).toBe('path/to/file');
+        expect(normalizePath('path//to//file')).toBe('path/to/file');
+        expect(normalizePath('path\\\\to\\\\file')).toBe('path/to/file');
+      });
+    });
+
+    describe('getFilename', () => {
+      it('パスからファイル名を取得する', () => {
+        expect(getFilename('/path/to/image.jpg')).toBe('image.jpg');
+        expect(getFilename('C:\\path\\to\\image.jpg')).toBe('image.jpg');
+        expect(getFilename('image.jpg')).toBe('image.jpg');
+      });
     });
   });
 });

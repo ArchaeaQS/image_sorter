@@ -4,8 +4,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppSettings, ClassItem } from '../../types';
+import { DEFAULT_COLORS, GRID_LIMITS, THUMBNAIL_LIMITS, DEBOUNCE_DELAYS } from '../../constants';
 
-interface SettingsModalProps {
+export interface SettingsModalProps {
   settings: AppSettings;
   classItems: ClassItem[];
   onSave: (settings: AppSettings, classItems: ClassItem[], shouldClose?: boolean) => void;
@@ -15,7 +16,6 @@ interface SettingsModalProps {
 }
 
 
-const DEFAULT_COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
   settings,
@@ -31,6 +31,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [newClassName, setNewClassName] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
 
   // 初期化フラグを設定
   useEffect(() => {
@@ -56,7 +57,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         } finally {
           setIsSaving(false);
         }
-      }, 300); // 300ms デバウンス
+      }, DEBOUNCE_DELAYS.AUTO_SAVE);
       
       return () => clearTimeout(timeoutId);
     }
@@ -75,7 +76,35 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleFolderSelect = async () => {
     try {
-      // Webベースのフォルダ選択実装
+      console.log('📂 フォルダ選択ダイアログを開く...');
+      
+      // ElectronのIPCを使ってネイティブダイアログを表示
+      const { ipcRenderer } = window.require('electron');
+      const folderPath = await ipcRenderer.invoke('select-folder');
+      
+      console.log('📂 選択されたフォルダ:', folderPath);
+      
+      if (folderPath) {
+        // UI を即座に更新
+        setLocalSettings(prev => ({ ...prev, targetFolder: folderPath }));
+        
+        // 自動保存が無効の場合は即座に保存
+        if (!autoSave) {
+          const updatedSettings: AppSettings = {
+            ...localSettings,
+            targetFolder: folderPath,
+            classLabels: localClassItems.map(item => item.name),
+          };
+          onSave(updatedSettings, localClassItems, false);
+        }
+      } else {
+        console.log('📂 フォルダ選択がキャンセルされました');
+      }
+    } catch (error) {
+      console.error('❌ フォルダ選択エラー:', error);
+      
+      // フォールバック: Webベースのフォルダ選択
+      console.log('🔄 Webベースのフォルダ選択にフォールバック');
       const input = document.createElement('input');
       input.type = 'file';
       input.webkitdirectory = true;
@@ -85,17 +114,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         const files = (event.target as HTMLInputElement).files;
         if (files && files.length > 0) {
           const firstFile = files[0];
-          const folderPath = firstFile.webkitRelativePath.split('/')[0];
-          console.log('📂 フォルダ選択:', folderPath);
+          // フォルダ名だけでなく、可能な限りパス情報を取得
+          const relativePath = firstFile.webkitRelativePath;
+          const folderName = relativePath.split('/')[0];
+          console.log('📂 Webベースで選択:', folderName, '(相対パス:', relativePath, ')');
           
-          // UI を即座に更新
-          setLocalSettings(prev => ({ ...prev, targetFolder: folderPath }));
+          setLocalSettings(prev => ({ ...prev, targetFolder: folderName }));
           
-          // 自動保存が無効の場合は即座に保存
           if (!autoSave) {
             const updatedSettings: AppSettings = {
               ...localSettings,
-              targetFolder: folderPath,
+              targetFolder: folderName,
               classLabels: localClassItems.map(item => item.name),
             };
             onSave(updatedSettings, localClassItems, false);
@@ -104,8 +133,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       };
       
       input.click();
-    } catch (error) {
-      console.error('フォルダ選択エラー:', error);
     }
   };
 
@@ -127,17 +154,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     setLocalClassItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const handleMoveClass = (id: string, direction: 'up' | 'down') => {
-    const currentIndex = localClassItems.findIndex(item => item.id === id);
-    if (currentIndex === -1) return;
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedItemId(id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    if (!draggedItemId || draggedItemId === targetId) return;
+
+    // リアルタイムでアイテムの位置を更新
+    const sourceIndex = localClassItems.findIndex(item => item.id === draggedItemId);
+    const targetIndex = localClassItems.findIndex(item => item.id === targetId);
+
+    if (sourceIndex === -1 || targetIndex === -1) return;
 
     const newItems = [...localClassItems];
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    const [movedItem] = newItems.splice(sourceIndex, 1);
+    newItems.splice(targetIndex, 0, movedItem);
 
-    if (targetIndex < 0 || targetIndex >= newItems.length) return;
-
-    [newItems[currentIndex], newItems[targetIndex]] = [newItems[targetIndex], newItems[currentIndex]];
-    
     // Update order values
     newItems.forEach((item, index) => {
       item.order = index;
@@ -146,20 +184,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     setLocalClassItems(newItems);
   };
 
-  const handleSave = async () => {
-    try {
-      const updatedSettings: AppSettings = {
-        ...localSettings,
-        classLabels: localClassItems.map(item => item.name),
-      };
-      await onSave(updatedSettings, localClassItems, true); // 明示的保存はタブを閉じる
-      console.log('✅ 手動保存完了');
-    } catch (error) {
-      console.error('❌ 手動保存エラー:', error);
-      alert('設定の保存に失敗しました。もう一度お試しください。');
-    }
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    setDraggedItemId(null);
   };
 
+  const handleDragEnd = () => {
+    setDraggedItemId(null);
+  };
+
+
+  // 絶対パスをそのまま表示（長い場合は省略表示）
+  const displayPath = localSettings.targetFolder || 'フォルダが選択されていません';
   const folderName = localSettings.targetFolder 
     ? localSettings.targetFolder.split(/[/\\]/).pop() || 'Unknown'
     : 'フォルダが選択されていません';
@@ -202,7 +238,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       📂 選択
                     </button>
                     <span className="folder-path" title={localSettings.targetFolder || undefined}>
-                      {folderName}
+                      {displayPath}
                     </span>
                   </div>
                 </div>
@@ -217,7 +253,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     value={localSettings.gridCols}
                     onChange={(e) => setLocalSettings(prev => ({ 
                       ...prev, 
-                      gridCols: Math.max(1, Math.min(20, parseInt(e.target.value) || 1))
+                      gridCols: Math.max(GRID_LIMITS.MIN_COLS, Math.min(GRID_LIMITS.MAX_COLS, parseInt(e.target.value) || 1))
                     }))}
                     min="1"
                     max="20"
@@ -230,7 +266,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     value={localSettings.gridRows}
                     onChange={(e) => setLocalSettings(prev => ({ 
                       ...prev, 
-                      gridRows: Math.max(1, Math.min(20, parseInt(e.target.value) || 1))
+                      gridRows: Math.max(GRID_LIMITS.MIN_ROWS, Math.min(GRID_LIMITS.MAX_ROWS, parseInt(e.target.value) || 1))
                     }))}
                     min="1"
                     max="20"
@@ -239,6 +275,34 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div className="setting-item">
                   <label>バッチサイズ:</label>
                   <span>{localSettings.gridCols * localSettings.gridRows} 枚</span>
+                </div>
+                <div className="setting-item">
+                  <label>サムネイル高さ:</label>
+                  <input
+                    type="range"
+                    min={THUMBNAIL_LIMITS.MIN_SIZE}
+                    max={THUMBNAIL_LIMITS.MAX_SIZE}
+                    value={localSettings.thumbnailHeight || THUMBNAIL_LIMITS.DEFAULT_HEIGHT}
+                    onChange={(e) => setLocalSettings(prev => ({ 
+                      ...prev, 
+                      thumbnailHeight: parseInt(e.target.value)
+                    }))}
+                  />
+                  <span>{localSettings.thumbnailHeight || THUMBNAIL_LIMITS.DEFAULT_HEIGHT}px</span>
+                </div>
+                <div className="setting-item">
+                  <label>サムネイル幅:</label>
+                  <input
+                    type="range"
+                    min={THUMBNAIL_LIMITS.MIN_SIZE}
+                    max={THUMBNAIL_LIMITS.MAX_SIZE}
+                    value={localSettings.thumbnailWidth || THUMBNAIL_LIMITS.DEFAULT_WIDTH}
+                    onChange={(e) => setLocalSettings(prev => ({ 
+                      ...prev, 
+                      thumbnailWidth: parseInt(e.target.value)
+                    }))}
+                  />
+                  <span>{localSettings.thumbnailWidth || THUMBNAIL_LIMITS.DEFAULT_WIDTH}px</span>
                 </div>
               </div>
             </div>
@@ -274,29 +338,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                   ) : (
                     localClassItems.map((classItem, index) => (
-                      <div key={classItem.id} className="class-item">
+                      <div 
+                        key={classItem.id} 
+                        className={`class-item ${draggedItemId === classItem.id ? 'dragging' : ''}`}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, classItem.id)}
+                        onDragOver={(e) => handleDragOver(e, classItem.id)}
+                        onDrop={(e) => handleDrop(e, classItem.id)}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <div className="drag-handle">⋮⋮</div>
                         <div
                           className="class-color"
                           style={{ backgroundColor: classItem.color }}
                         />
                         <div className="class-name">{classItem.name}</div>
                         <div className="class-controls-btn">
-                          <button
-                            className="move-btn"
-                            onClick={() => handleMoveClass(classItem.id, 'up')}
-                            disabled={index === 0}
-                            title="上に移動"
-                          >
-                            ↑
-                          </button>
-                          <button
-                            className="move-btn"
-                            onClick={() => handleMoveClass(classItem.id, 'down')}
-                            disabled={index === localClassItems.length - 1}
-                            title="下に移動"
-                          >
-                            ↓
-                          </button>
                           <button
                             className="delete-btn"
                             onClick={() => handleDeleteClass(classItem.id)}
@@ -314,39 +371,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
         </div>
 
-      {!isInline && (
-        <div className="modal-footer">
-          <button className="primary-btn" onClick={handleSave}>
-            💾 保存
-          </button>
-          <button className="secondary-btn" onClick={onClose}>
-            ❌ キャンセル
-          </button>
-        </div>
-      )}
 
-      {isInline && !autoSave && (
-        <div className="inline-footer">
-          <button className="primary-btn" onClick={handleSave}>
-            💾 保存してメインに戻る
-          </button>
-        </div>
-      )}
 
-      {isInline && autoSave && (
-        <div className="inline-footer">
-          <div className="auto-save-status">
-            {isSaving ? (
-              <span style={{ color: '#f59e0b' }}>⏳ 保存中...</span>
-            ) : (
-              <span style={{ color: '#10b981' }}>✅ 自動保存済み</span>
-            )}
-          </div>
-          <button className="secondary-btn" onClick={onClose}>
-            📋 メインに戻る
-          </button>
-        </div>
-      )}
     </>
   );
 

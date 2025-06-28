@@ -3,6 +3,7 @@
  */
 
 import { AppSettings, ClassItem } from '../types';
+import { DEFAULT_COLORS, THUMBNAIL_LIMITS } from '../constants';
 
 declare global {
   interface Window {
@@ -17,9 +18,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   classLabels: ['テキスト', '図表', '写真'],
   gridCols: 10,
   gridRows: 10,
+  thumbnailHeight: THUMBNAIL_LIMITS.DEFAULT_HEIGHT,
+  thumbnailWidth: THUMBNAIL_LIMITS.DEFAULT_WIDTH,
 };
-
-const DEFAULT_CLASS_COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
 
 /**
  * Load settings from JSON file
@@ -63,7 +64,7 @@ export const loadClassItemsFromFile = async (): Promise<ClassItem[]> => {
   return DEFAULT_SETTINGS.classLabels.map((label, index) => ({
     id: `class-${index}`,
     name: label,
-    color: DEFAULT_CLASS_COLORS[index % DEFAULT_CLASS_COLORS.length],
+    color: DEFAULT_COLORS[index % DEFAULT_COLORS.length],
     order: index,
   }));
 };

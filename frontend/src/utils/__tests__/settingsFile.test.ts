@@ -34,6 +34,8 @@ describe('File-based Settings Management', () => {
         classLabels: ['テスト1', 'テスト2'],
         gridCols: 5,
         gridRows: 4,
+        thumbnailHeight: 200,
+        thumbnailWidth: 180,
       };
 
       mockIpcRenderer.invoke.mockResolvedValue(undefined);
@@ -68,6 +70,8 @@ describe('File-based Settings Management', () => {
       expect(result.gridCols).toBe(10);
       expect(result.gridRows).toBe(10);
       expect(result.classLabels).toEqual(['テキスト', '図表', '写真']);
+      expect(result.thumbnailHeight).toBe(160);
+      expect(result.thumbnailWidth).toBe(160);
     });
 
     it('設定読み込み時のエラーハンドリング', async () => {

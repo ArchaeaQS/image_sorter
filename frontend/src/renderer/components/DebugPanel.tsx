@@ -5,7 +5,7 @@
 import React from 'react';
 import { AppSettings, ClassItem } from '../../types';
 
-interface DebugPanelProps {
+export interface DebugPanelProps {
   settings: AppSettings;
   classItems: ClassItem[];
   isLoading: boolean;

@@ -2,164 +2,115 @@
  * Main App component for Image Sorter
  */
 
-import React, { useState } from 'react';
-import { AppSettings, ClassItem } from '../../types';
-import Controls from './Controls';
-import ProgressBar from './ProgressBar';
-import ImageGrid from './ImageGrid';
-import SettingsModal from './SettingsModal';
-import { getImages, classifyImages, undoClassification, ApiError } from '../../services/api';
-import { useSettingsFile } from '../../hooks/useSettingsFile';
-import { useImageBatch } from '../../hooks/useImageBatch';
-import { selectFolder } from '../../utils/fileUtils';
-import DebugPanel from './DebugPanel';
-
-
+import React, { useState } from "react";
+import { AppSettings, ClassItem } from "../../types";
+import ProgressBar from "./ProgressBar";
+import ImageGrid from "./ImageGrid";
+import SettingsModal from "./SettingsModal";
+import Controls from "./Controls";
+import DebugPanel from "./DebugPanel";
+import { useSettingsFile } from "../../hooks/useSettingsFile";
+import { useImageBatch } from "../../hooks/useImageBatch";
+import { useImageClassification } from "../hooks/useImageClassification";
+import { useImageLoader } from "../hooks/useImageLoader";
 
 const App: React.FC = () => {
-  const { settings, classItems, updateSettings, updateClassItems, updateBoth, isLoading: settingsLoading } = useSettingsFile();
-  const { 
-    currentBatch, 
-    imageStates, 
-    remainingImages, 
-    loadNextBatch, 
-    toggleImageState, 
-    clearBatch 
+  const {
+    settings,
+    classItems,
+    updateSettings,
+    updateBoth,
+    isLoading: settingsLoading,
+  } = useSettingsFile();
+  const {
+    currentBatch,
+    imageStates,
+    remainingImages,
+    loadNextBatch,
+    toggleImageState,
+    clearBatch,
   } = useImageBatch();
-  
+
+  // カスタムフック
+  const {
+    totalProcessed,
+    setTotalProcessed,
+    lastMoveData,
+    setLastMoveData,
+    isLoading: classificationLoading,
+    handleClassify,
+    handleUndo,
+  } = useImageClassification();
+
+  const {
+    isLoading: imageLoading,
+    handleLoadImages,
+    useAutoImageLoader,
+  } = useImageLoader();
+
   // currentFolderはsettings.targetFolderから取得
   const currentFolder = settings.targetFolder;
-  const [totalProcessed, setTotalProcessed] = useState(0);
-  const [lastMoveData, setLastMoveData] = useState<Array<{source: string; destination: string}> | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'main' | 'settings'>('main');
+  const [showSettings, setShowSettings] = useState(false);
+  const isLoading = classificationLoading || imageLoading;
 
-  const handleFolderSelect = async () => {
-    try {
-      const folder = await selectFolder();
-      if (folder) {
-        updateSettings({ ...settings, targetFolder: folder });
-        setTotalProcessed(0);
-        clearBatch();
-      }
-    } catch (error) {
-      console.error('フォルダ選択エラー:', error);
-    }
-  };
-
-  const handleLoadImages = async () => {
-    console.log('画像読み込み開始 - currentFolder:', currentFolder);
-    console.log('現在のsettings:', settings);
-    
-    if (!currentFolder) {
-      alert('フォルダを選択してください');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const images = await getImages(currentFolder);
-      loadNextBatch(images, settings);
-    } catch (error) {
-      console.error('画像読み込みエラー:', error);
-      const message = error instanceof ApiError ? error.message : '画像の読み込みに失敗しました';
-      alert(message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // 自動画像読み込みのセットアップ
+  useAutoImageLoader(
+    currentFolder,
+    currentBatch,
+    remainingImages,
+    settingsLoading,
+    loadNextBatch,
+    settings
+  );
 
   const handleImageClick = (imagePath: string, direction: number) => {
     toggleImageState(imagePath, direction, classItems.length);
   };
 
-  const handleClassify = async () => {
-    const imagesToClassify = currentBatch.filter(
-      image => imageStates[image.path] > 0
+  // 分類実行のハンドラー
+  const handleClassifyClick = () => {
+    handleClassify(
+      currentBatch,
+      imageStates,
+      classItems,
+      currentFolder,
+      remainingImages,
+      loadNextBatch,
+      settings
     );
-
-    if (imagesToClassify.length === 0) {
-      alert('分類する画像を選択してください');
-      return;
-    }
-
-    if (!currentFolder) {
-      alert('対象フォルダが設定されていません');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const imagePaths = imagesToClassify.map(image => image.path);
-      const labels = imagesToClassify.map(image => 
-        classItems[imageStates[image.path] - 1]?.name || ''
-      );
-
-      const result = await classifyImages({
-        image_paths: imagePaths,
-        labels: labels,
-        target_folder: currentFolder,
-      });
-
-      if (result.success) {
-        setLastMoveData(result.moved_files);
-        setTotalProcessed(prev => prev + imagesToClassify.length);
-        
-        // 次のバッチを表示
-        loadNextBatch(remainingImages, settings);
-      }
-    } catch (error) {
-      console.error('分類エラー:', error);
-      const message = error instanceof ApiError ? error.message : '分類処理に失敗しました';
-      alert(message);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
-  const handleUndo = async () => {
-    if (!lastMoveData || lastMoveData.length === 0) {
-      alert('取り消すファイル移動がありません');
-      return;
-    }
+  const handleSaveSettings = async (
+    newSettings: AppSettings,
+    newClassItems: ClassItem[],
+    shouldCloseSettings = false
+  ) => {
+    console.log("設定保存開始:", {
+      newSettings,
+      newClassItems,
+      shouldCloseSettings,
+    });
+    console.log("現在の設定:", settings);
 
-    setIsLoading(true);
-    try {
-      const result = await undoClassification({
-        moved_files: lastMoveData,
-      });
-
-      if (result.success) {
-        // 取り消し成功後、lastMoveDataをクリア
-        setLastMoveData(null);
-        setTotalProcessed(prev => Math.max(0, prev - (lastMoveData?.length || 0)));
-        
-        alert(`${result.restored_files.length}件のファイルを元に戻しました`);
-      }
-    } catch (error) {
-      console.error('取り消しエラー:', error);
-      const message = error instanceof ApiError ? error.message : '取り消し処理に失敗しました';
-      alert(message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSaveSettings = async (newSettings: AppSettings, newClassItems: ClassItem[], shouldCloseSettings = false) => {
-    console.log('設定保存開始:', { newSettings, newClassItems, shouldCloseSettings });
-    console.log('現在の設定:', settings);
-    
     try {
       // フックを使って設定を更新（永続化も自動で行われる）
-      await updateBoth(newSettings, newClassItems);
-      console.log('✅ 設定更新完了');
-      
-      // 明示的に保存ボタンが押された場合のみタブを切り替え
+      updateBoth(newSettings, newClassItems);
+      console.log("✅ 設定更新完了");
+
+      // 明示的に保存ボタンが押された場合のみ設定を閉じる
       if (shouldCloseSettings) {
-        setActiveTab('main');
+        setShowSettings(false);
       }
 
-      console.log('設定保存後のcurrentFolder:', newSettings.targetFolder);
+      console.log("設定保存後のcurrentFolder:", newSettings.targetFolder);
+
+      // フォルダが変更された場合、画像データをクリア
+      if (newSettings.targetFolder !== settings.targetFolder) {
+        console.log("📁 フォルダ変更検知 - 画像データをクリア");
+        clearBatch();
+        setTotalProcessed(0);
+        setLastMoveData(null);
+      }
 
       // グリッドサイズが変更された場合、現在のバッチを再計算
       if (
@@ -172,13 +123,15 @@ const App: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('❌ 設定保存エラー:', error);
-      // エラーの場合はタブを切り替えない
+      console.error("❌ 設定保存エラー:", error);
     }
   };
 
-  const totalImages = totalProcessed + remainingImages.length + currentBatch.length;
-  const progressPercentage = totalImages > 0 ? (totalProcessed / totalImages) * 100 : 0;
+
+  const totalImages =
+    totalProcessed + remainingImages.length + currentBatch.length;
+  const progressPercentage =
+    totalImages > 0 ? (totalProcessed / totalImages) * 100 : 0;
 
   // 設定読み込み中の場合はローディング表示
   if (settingsLoading) {
@@ -193,70 +146,57 @@ const App: React.FC = () => {
 
   return (
     <div className="app-container">
-      
-      {/* Tab Navigation */}
-      <div className="tab-navigation">
-        <button 
-          className={`tab-nav-btn ${activeTab === 'main' ? 'active' : ''}`}
-          onClick={() => setActiveTab('main')}
-        >
-          📋 メイン
-        </button>
-        <button 
-          className={`tab-nav-btn ${activeTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settings')}
-        >
-          ⚙️ 設定
-        </button>
+      <div className="main-content">
+        {/* Image Grid */}
+        <ImageGrid
+          images={currentBatch}
+          imageStates={imageStates}
+          classItems={classItems}
+          gridCols={settings.gridCols}
+          thumbnailHeight={settings.thumbnailHeight ?? 120}
+          thumbnailWidth={settings.thumbnailWidth ?? 120}
+          onImageClick={handleImageClick}
+        />
+
+        {/* Control buttons */}
+        <Controls
+          onSettingsClick={() => setShowSettings(true)}
+          onClassify={handleClassifyClick}
+          onUndo={handleUndo}
+          canClassify={currentBatch.length > 0}
+          canUndo={lastMoveData !== null && lastMoveData.length > 0}
+          isLoading={isLoading}
+          currentFolder={currentFolder}
+        />
+
+        {/* Progress Bar */}
+        <ProgressBar
+          current={totalProcessed}
+          total={totalImages}
+          percentage={progressPercentage}
+        />
       </div>
 
-      {activeTab === 'main' ? (
-        <div className="main-content">
-          <Controls
-            onLoadImages={handleLoadImages}
-            onClassify={handleClassify}
-            onUndo={handleUndo}
-            canClassify={currentBatch.length > 0}
-            canUndo={!!lastMoveData && lastMoveData.length > 0}
-            isLoading={isLoading}
-          />
-          
-          <ImageGrid
-            images={currentBatch}
-            imageStates={imageStates}
-            classItems={classItems}
-            gridCols={settings.gridCols}
-            onImageClick={handleImageClick}
-          />
-          
-          <ProgressBar
-            current={totalProcessed}
-            total={totalImages}
-            percentage={progressPercentage}
-          />
-        </div>
-      ) : (
-        <div className="settings-content">
-          <SettingsModal
-            settings={settings}
-            classItems={classItems}
-            onSave={handleSaveSettings}
-            onClose={() => setActiveTab('main')}
-            isInline={true}
-            autoSave={true}
-          />
-        </div>
-      )}
-
-      {/* Debug Panel - 開発時のみ表示 */}
-      {process.argv && process.argv.includes('--dev') && (
-        <DebugPanel 
-          settings={settings} 
-          classItems={classItems} 
-          isLoading={settingsLoading} 
+      {/* Settings Modal */}
+      {showSettings && (
+        <SettingsModal
+          settings={settings}
+          classItems={classItems}
+          onSave={handleSaveSettings}
+          onClose={() => setShowSettings(false)}
+          isInline={false}
+          autoSave={true}
         />
       )}
 
+      {/* Debug Panel - 開発時のみ表示 */}
+      {process.argv && process.argv.includes("--dev") && (
+        <DebugPanel
+          settings={settings}
+          classItems={classItems}
+          isLoading={settingsLoading}
+        />
+      )}
     </div>
   );
 };

@@ -1,16 +1,24 @@
 /**
- * Tests for API service
+ * Tests for API service (Electron IPC version)
  */
 
-import { getImages, classifyImages, undoClassification, healthCheck, ApiError } from '../api';
+import { getImages, classifyImages, undoClassification, checkFolderExists, ApiError } from '../api';
 
-// Mock fetch
-global.fetch = jest.fn();
-const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
+// Mock Electron IPC
+const mockIpcRenderer = {
+  invoke: jest.fn(),
+};
 
-describe('API Service', () => {
+// Mock window.require
+(global as any).window = {
+  require: jest.fn(() => ({
+    ipcRenderer: mockIpcRenderer,
+  })),
+};
+
+describe('API Service (Electron IPC)', () => {
   beforeEach(() => {
-    mockFetch.mockClear();
+    mockIpcRenderer.invoke.mockClear();
   });
 
   describe('getImages', () => {
@@ -20,30 +28,17 @@ describe('API Service', () => {
         { path: '/path/to/image2.png', filename: 'image2.png' },
       ];
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockImages,
-      } as Response);
+      mockIpcRenderer.invoke.mockResolvedValue(mockImages);
 
       const result = await getImages('/test/folder');
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://127.0.0.1:8000/get-images',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({ folder_path: encodeURIComponent('/test/folder') }),
-        }
-      );
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('get-images', '/test/folder');
       expect(result).toEqual(mockImages);
     });
 
-    it('APIエラー時にApiErrorを投げる', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 404,
-        json: async () => ({ detail: 'フォルダが見つかりません' }),
-      } as Response);
+    it('エラー時にApiErrorを投げる', async () => {
+      const errorMessage = 'フォルダが見つかりません';
+      mockIpcRenderer.invoke.mockRejectedValue(new Error(errorMessage));
 
       await expect(getImages('/invalid/folder')).rejects.toThrow(ApiError);
     });
@@ -53,15 +48,10 @@ describe('API Service', () => {
     it('画像分類リクエストを送信できる', async () => {
       const mockResponse = {
         success: true,
-        moved_files: [
-          { source: '/path/image1.jpg', destination: '/path/class1/image1.jpg' }
-        ],
+        moved_files: [{ source: '/path/image1.jpg', destination: '/path/class1/image1.jpg' }],
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
+      mockIpcRenderer.invoke.mockResolvedValue(mockResponse);
 
       const request = {
         image_paths: ['/path/image1.jpg'],
@@ -71,18 +61,7 @@ describe('API Service', () => {
 
       const result = await classifyImages(request);
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://127.0.0.1:8000/classify',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            image_paths: [encodeURIComponent('/path/image1.jpg')],
-            labels: ['class1'],
-            target_folder: encodeURIComponent('/path'),
-          }),
-        }
-      );
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('classify-images', request);
       expect(result).toEqual(mockResponse);
     });
   });
@@ -91,70 +70,39 @@ describe('API Service', () => {
     it('ファイル移動の取り消しができる', async () => {
       const mockResponse = {
         success: true,
-        restored_files: [
-          { from: '/path/class1/image1.jpg', to: '/path/image1.jpg' }
-        ],
+        restored_files: [{ source: '/path/class1/image1.jpg', destination: '/path/image1.jpg' }],
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
+      mockIpcRenderer.invoke.mockResolvedValue(mockResponse);
 
       const request = {
-        moved_files: [
-          { source: '/path/image1.jpg', destination: '/path/class1/image1.jpg' }
-        ],
+        moved_files: [{ source: '/path/image1.jpg', destination: '/path/class1/image1.jpg' }],
       };
 
       const result = await undoClassification(request);
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://127.0.0.1:8000/undo',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            moved_files: [
-              {
-                source: encodeURIComponent('/path/image1.jpg'),
-                destination: encodeURIComponent('/path/class1/image1.jpg'),
-              }
-            ],
-          }),
-        }
-      );
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('undo-classification', request);
       expect(result).toEqual(mockResponse);
     });
   });
 
-  describe('healthCheck', () => {
-    it('APIサーバーの健康状態を確認できる', async () => {
-      const mockResponse = {
-        message: 'Image Sorter API',
-        version: '1.0.0',
-      };
+  describe('checkFolderExists', () => {
+    it('フォルダの存在確認ができる', async () => {
+      mockIpcRenderer.invoke.mockResolvedValue(true);
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
+      const result = await checkFolderExists('/test/folder');
 
-      const result = await healthCheck();
-
-      expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:8000/');
-      expect(result).toEqual(mockResponse);
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('check-folder-exists', '/test/folder');
+      expect(result).toBe(true);
     });
-  });
 
-  describe('ApiError', () => {
-    it('エラー情報を含んで作成される', () => {
-      const error = new ApiError('テストエラー', 500, 'サーバーエラー');
-      
-      expect(error.message).toBe('テストエラー');
-      expect(error.status).toBe(500);
-      expect(error.detail).toBe('サーバーエラー');
-      expect(error.name).toBe('ApiError');
+    it('存在しないフォルダでfalseを返す', async () => {
+      mockIpcRenderer.invoke.mockResolvedValue(false);
+
+      const result = await checkFolderExists('/nonexistent/folder');
+
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('check-folder-exists', '/nonexistent/folder');
+      expect(result).toBe(false);
     });
   });
 });

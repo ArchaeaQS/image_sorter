@@ -41,7 +41,7 @@ describe('useImageBatch', () => {
     expect(result.current.currentBatch).toHaveLength(4); // 2×2のグリッド
     expect(result.current.remainingImages).toHaveLength(1); // 残り画像
     
-    // 全ての画像が未分類状態（0）で初期化される
+    // 全ての画像が最初のクラス（0）で初期化される
     expect(Object.values(result.current.imageStates)).toEqual([0, 0, 0, 0]);
   });
 
@@ -71,19 +71,13 @@ describe('useImageBatch', () => {
     const imagePath = '/path/image1.jpg';
     const maxState = 2; // クラス数
 
-    // 未分類(0) -> クラス1(1)
+    // クラス0(0) -> クラス1(1)
     act(() => {
       result.current.toggleImageState(imagePath, 1, maxState);
     });
     expect(result.current.imageStates[imagePath]).toBe(1);
 
-    // クラス1(1) -> クラス2(2)
-    act(() => {
-      result.current.toggleImageState(imagePath, 1, maxState);
-    });
-    expect(result.current.imageStates[imagePath]).toBe(2);
-
-    // クラス2(2) -> 未分類(0) (循環)
+    // クラス1(1) -> クラス0(0) (循環、maxState=2なので0,1のみ)
     act(() => {
       result.current.toggleImageState(imagePath, 1, maxState);
     });
@@ -101,17 +95,17 @@ describe('useImageBatch', () => {
     const imagePath = '/path/image1.jpg';
     const maxState = 2; // クラス数
 
-    // 未分類(0) -> クラス2(2) (逆方向)
-    act(() => {
-      result.current.toggleImageState(imagePath, -1, maxState);
-    });
-    expect(result.current.imageStates[imagePath]).toBe(2);
-
-    // クラス2(2) -> クラス1(1)
+    // クラス0(0) -> クラス1(1) (逆方向、maxState=2なので0,1のみ)
     act(() => {
       result.current.toggleImageState(imagePath, -1, maxState);
     });
     expect(result.current.imageStates[imagePath]).toBe(1);
+
+    // クラス1(1) -> クラス0(0)
+    act(() => {
+      result.current.toggleImageState(imagePath, -1, maxState);
+    });
+    expect(result.current.imageStates[imagePath]).toBe(0);
   });
 
   it('バッチをクリアできる', () => {
