@@ -16,7 +16,8 @@ export const selectFolder = async (): Promise<string | null> => {
       const files = (event.target as HTMLInputElement).files;
       if (files && files.length > 0) {
         const firstFile = files[0];
-        const folderPath = firstFile.webkitRelativePath.split('/')[0];
+        // UTF-8エンコーディングを保持してフォルダパスを取得
+        const folderPath = decodeURIComponent(firstFile.webkitRelativePath.split('/')[0]);
         resolve(folderPath);
       } else {
         resolve(null);
@@ -36,10 +37,19 @@ export const selectFolder = async (): Promise<string | null> => {
 export const getFolderName = (folderPath: string | null): string => {
   if (!folderPath) return 'フォルダが選択されていません';
   
-  // 末尾のスラッシュを削除してから分割
-  const cleanPath = folderPath.replace(/[/\\]+$/, '');
-  const parts = cleanPath.split(/[/\\]/);
-  return parts.pop() || 'Unknown';
+  try {
+    // UTF-8デコードしてから処理
+    const decodedPath = decodeURIComponent(folderPath);
+    // 末尾のスラッシュを削除してから分割
+    const cleanPath = decodedPath.replace(/[/\\]+$/, '');
+    const parts = cleanPath.split(/[/\\]/);
+    return parts.pop() || 'Unknown';
+  } catch (error) {
+    // デコードに失敗した場合は元の文字列を処理
+    const cleanPath = folderPath.replace(/[/\\]+$/, '');
+    const parts = cleanPath.split(/[/\\]/);
+    return parts.pop() || 'Unknown';
+  }
 };
 
 /**

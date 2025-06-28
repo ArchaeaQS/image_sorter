@@ -71,13 +71,14 @@ async function handleResponse<T>(response: Response): Promise<T> {
  */
 export async function getImages(folderPath: string): Promise<ImageInfo[]> {
   try {
+    // UTF-8エンコーディングを明示的に指定
     const response = await fetch(`${API_BASE_URL}/get-images`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
       },
       body: JSON.stringify({
-        folder_path: folderPath,
+        folder_path: encodeURIComponent(folderPath),
       }),
     });
 
@@ -95,12 +96,19 @@ export async function getImages(folderPath: string): Promise<ImageInfo[]> {
  */
 export async function classifyImages(request: ClassifyRequest): Promise<ClassifyResponse> {
   try {
+    // UTF-8エンコーディングでパスを処理
+    const encodedRequest = {
+      ...request,
+      image_paths: request.image_paths.map(path => encodeURIComponent(path)),
+      target_folder: encodeURIComponent(request.target_folder),
+    };
+
     const response = await fetch(`${API_BASE_URL}/classify`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify(encodedRequest),
     });
 
     return await handleResponse<ClassifyResponse>(response);
@@ -117,12 +125,20 @@ export async function classifyImages(request: ClassifyRequest): Promise<Classify
  */
 export async function undoClassification(request: UndoRequest): Promise<UndoResponse> {
   try {
+    // UTF-8エンコーディングでパスを処理
+    const encodedRequest = {
+      moved_files: request.moved_files.map(file => ({
+        source: encodeURIComponent(file.source),
+        destination: encodeURIComponent(file.destination),
+      })),
+    };
+
     const response = await fetch(`${API_BASE_URL}/undo`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify(encodedRequest),
     });
 
     return await handleResponse<UndoResponse>(response);

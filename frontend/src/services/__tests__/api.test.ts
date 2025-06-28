@@ -31,8 +31,8 @@ describe('API Service', () => {
         'http://127.0.0.1:8000/get-images',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ folder_path: '/test/folder' }),
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({ folder_path: encodeURIComponent('/test/folder') }),
         }
       );
       expect(result).toEqual(mockImages);
@@ -75,8 +75,12 @@ describe('API Service', () => {
         'http://127.0.0.1:8000/classify',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(request),
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            image_paths: [encodeURIComponent('/path/image1.jpg')],
+            labels: ['class1'],
+            target_folder: encodeURIComponent('/path'),
+          }),
         }
       );
       expect(result).toEqual(mockResponse);
@@ -109,8 +113,15 @@ describe('API Service', () => {
         'http://127.0.0.1:8000/undo',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(request),
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            moved_files: [
+              {
+                source: encodeURIComponent('/path/image1.jpg'),
+                destination: encodeURIComponent('/path/class1/image1.jpg'),
+              }
+            ],
+          }),
         }
       );
       expect(result).toEqual(mockResponse);
