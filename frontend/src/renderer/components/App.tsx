@@ -9,14 +9,15 @@ import ProgressBar from './ProgressBar';
 import ImageGrid from './ImageGrid';
 import SettingsModal from './SettingsModal';
 import { getImages, classifyImages, undoClassification, ApiError } from '../../services/api';
-import { useSettings } from '../../hooks/useSettings';
+import { useSettingsFile } from '../../hooks/useSettingsFile';
 import { useImageBatch } from '../../hooks/useImageBatch';
 import { selectFolder } from '../../utils/fileUtils';
+import DebugPanel from './DebugPanel';
 
 
 
 const App: React.FC = () => {
-  const { settings, classItems, updateSettings, updateClassItems, updateBoth } = useSettings();
+  const { settings, classItems, updateSettings, updateClassItems, updateBoth, isLoading: settingsLoading } = useSettingsFile();
   const { 
     currentBatch, 
     imageStates, 
@@ -47,6 +48,9 @@ const App: React.FC = () => {
   };
 
   const handleLoadImages = async () => {
+    console.log('画像読み込み開始 - currentFolder:', currentFolder);
+    console.log('現在のsettings:', settings);
+    
     if (!currentFolder) {
       alert('フォルダを選択してください');
       return;
@@ -141,10 +145,19 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSaveSettings = (newSettings: AppSettings, newClassItems: ClassItem[]) => {
+  const handleSaveSettings = (newSettings: AppSettings, newClassItems: ClassItem[], shouldCloseSettings = false) => {
+    console.log('設定保存開始:', { newSettings, newClassItems, shouldCloseSettings });
+    console.log('現在の設定:', settings);
+    
     // フックを使って設定を更新（永続化も自動で行われる）
     updateBoth(newSettings, newClassItems);
-    setActiveTab('main');
+    
+    // 明示的に保存ボタンが押された場合のみタブを切り替え
+    if (shouldCloseSettings) {
+      setActiveTab('main');
+    }
+
+    console.log('設定保存後のcurrentFolder:', newSettings.targetFolder);
 
     // グリッドサイズが変更された場合、現在のバッチを再計算
     if (
@@ -160,6 +173,17 @@ const App: React.FC = () => {
 
   const totalImages = totalProcessed + remainingImages.length + currentBatch.length;
   const progressPercentage = totalImages > 0 ? (totalProcessed / totalImages) * 100 : 0;
+
+  // 設定読み込み中の場合はローディング表示
+  if (settingsLoading) {
+    return (
+      <div className="app-container">
+        <div className="loading-screen">
+          <h2>⏳ 設定読み込み中...</h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
@@ -213,8 +237,18 @@ const App: React.FC = () => {
             onSave={handleSaveSettings}
             onClose={() => setActiveTab('main')}
             isInline={true}
+            autoSave={true}
           />
         </div>
+      )}
+
+      {/* Debug Panel - 開発時のみ表示 */}
+      {process.argv && process.argv.includes('--dev') && (
+        <DebugPanel 
+          settings={settings} 
+          classItems={classItems} 
+          isLoading={settingsLoading} 
+        />
       )}
 
     </div>

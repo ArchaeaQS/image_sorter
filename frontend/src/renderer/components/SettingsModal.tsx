@@ -8,9 +8,10 @@ import { AppSettings, ClassItem } from '../../types';
 interface SettingsModalProps {
   settings: AppSettings;
   classItems: ClassItem[];
-  onSave: (settings: AppSettings, classItems: ClassItem[]) => void;
+  onSave: (settings: AppSettings, classItems: ClassItem[], shouldClose?: boolean) => void;
   onClose: () => void;
   isInline?: boolean;
+  autoSave?: boolean; // 自動保存フラグ
 }
 
 
@@ -22,11 +23,30 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onSave,
   onClose,
   isInline = false,
+  autoSave = false,
 }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'classes'>('general');
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   const [localClassItems, setLocalClassItems] = useState<ClassItem[]>([...classItems]);
   const [newClassName, setNewClassName] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // 初期化フラグを設定
+  useEffect(() => {
+    setIsInitialized(true);
+  }, []);
+
+  // 自動保存のためのuseEffect
+  useEffect(() => {
+    if (autoSave && isInitialized) {
+      console.log('🔄 自動保存: 設定変更検知');
+      const updatedSettings: AppSettings = {
+        ...localSettings,
+        classLabels: localClassItems.map(item => item.name),
+      };
+      onSave(updatedSettings, localClassItems, false); // 自動保存はタブを閉じない
+    }
+  }, [localSettings, localClassItems, autoSave, onSave, isInitialized]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -52,6 +72,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         if (files && files.length > 0) {
           const firstFile = files[0];
           const folderPath = firstFile.webkitRelativePath.split('/')[0];
+          console.log('📂 フォルダ選択:', folderPath);
           setLocalSettings(prev => ({ ...prev, targetFolder: folderPath }));
         }
       };
@@ -104,7 +125,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       ...localSettings,
       classLabels: localClassItems.map(item => item.name),
     };
-    onSave(updatedSettings, localClassItems);
+    onSave(updatedSettings, localClassItems, true); // 明示的保存はタブを閉じる
   };
 
   const folderName = localSettings.targetFolder 
