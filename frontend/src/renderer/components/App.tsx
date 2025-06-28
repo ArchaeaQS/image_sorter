@@ -145,29 +145,35 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSaveSettings = (newSettings: AppSettings, newClassItems: ClassItem[], shouldCloseSettings = false) => {
+  const handleSaveSettings = async (newSettings: AppSettings, newClassItems: ClassItem[], shouldCloseSettings = false) => {
     console.log('設定保存開始:', { newSettings, newClassItems, shouldCloseSettings });
     console.log('現在の設定:', settings);
     
-    // フックを使って設定を更新（永続化も自動で行われる）
-    updateBoth(newSettings, newClassItems);
-    
-    // 明示的に保存ボタンが押された場合のみタブを切り替え
-    if (shouldCloseSettings) {
-      setActiveTab('main');
-    }
-
-    console.log('設定保存後のcurrentFolder:', newSettings.targetFolder);
-
-    // グリッドサイズが変更された場合、現在のバッチを再計算
-    if (
-      newSettings.gridCols !== settings.gridCols ||
-      newSettings.gridRows !== settings.gridRows
-    ) {
-      const allImages = [...currentBatch, ...remainingImages];
-      if (allImages.length > 0) {
-        loadNextBatch(allImages, newSettings);
+    try {
+      // フックを使って設定を更新（永続化も自動で行われる）
+      await updateBoth(newSettings, newClassItems);
+      console.log('✅ 設定更新完了');
+      
+      // 明示的に保存ボタンが押された場合のみタブを切り替え
+      if (shouldCloseSettings) {
+        setActiveTab('main');
       }
+
+      console.log('設定保存後のcurrentFolder:', newSettings.targetFolder);
+
+      // グリッドサイズが変更された場合、現在のバッチを再計算
+      if (
+        newSettings.gridCols !== settings.gridCols ||
+        newSettings.gridRows !== settings.gridRows
+      ) {
+        const allImages = [...currentBatch, ...remainingImages];
+        if (allImages.length > 0) {
+          loadNextBatch(allImages, newSettings);
+        }
+      }
+    } catch (error) {
+      console.error('❌ 設定保存エラー:', error);
+      // エラーの場合はタブを切り替えない
     }
   };
 

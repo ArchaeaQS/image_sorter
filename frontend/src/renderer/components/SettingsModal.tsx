@@ -30,23 +30,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [localClassItems, setLocalClassItems] = useState<ClassItem[]>([...classItems]);
   const [newClassName, setNewClassName] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // 初期化フラグを設定
   useEffect(() => {
     setIsInitialized(true);
   }, []);
 
-  // 自動保存のためのuseEffect
+  // 自動保存のためのuseEffect（デバウンス付き）
   useEffect(() => {
-    if (autoSave && isInitialized) {
+    if (autoSave && isInitialized && !isSaving) {
       console.log('🔄 自動保存: 設定変更検知');
-      const updatedSettings: AppSettings = {
-        ...localSettings,
-        classLabels: localClassItems.map(item => item.name),
-      };
-      onSave(updatedSettings, localClassItems, false); // 自動保存はタブを閉じない
+      
+      const timeoutId = setTimeout(async () => {
+        setIsSaving(true);
+        try {
+          const updatedSettings: AppSettings = {
+            ...localSettings,
+            classLabels: localClassItems.map(item => item.name),
+          };
+          await onSave(updatedSettings, localClassItems, false); // 自動保存はタブを閉じない
+          console.log('✅ 自動保存完了');
+        } catch (error) {
+          console.error('❌ 自動保存エラー:', error);
+        } finally {
+          setIsSaving(false);
+        }
+      }, 300); // 300ms デバウンス
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [localSettings, localClassItems, autoSave, onSave, isInitialized]);
+  }, [localSettings, localClassItems, autoSave, onSave, isInitialized, isSaving]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -73,7 +87,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           const firstFile = files[0];
           const folderPath = firstFile.webkitRelativePath.split('/')[0];
           console.log('📂 フォルダ選択:', folderPath);
+          
+          // UI を即座に更新
           setLocalSettings(prev => ({ ...prev, targetFolder: folderPath }));
+          
+          // 自動保存が無効の場合は即座に保存
+          if (!autoSave) {
+            const updatedSettings: AppSettings = {
+              ...localSettings,
+              targetFolder: folderPath,
+              classLabels: localClassItems.map(item => item.name),
+            };
+            onSave(updatedSettings, localClassItems, false);
+          }
         }
       };
       
@@ -120,12 +146,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     setLocalClassItems(newItems);
   };
 
-  const handleSave = () => {
-    const updatedSettings: AppSettings = {
-      ...localSettings,
-      classLabels: localClassItems.map(item => item.name),
-    };
-    onSave(updatedSettings, localClassItems, true); // 明示的保存はタブを閉じる
+  const handleSave = async () => {
+    try {
+      const updatedSettings: AppSettings = {
+        ...localSettings,
+        classLabels: localClassItems.map(item => item.name),
+      };
+      await onSave(updatedSettings, localClassItems, true); // 明示的保存はタブを閉じる
+      console.log('✅ 手動保存完了');
+    } catch (error) {
+      console.error('❌ 手動保存エラー:', error);
+      alert('設定の保存に失敗しました。もう一度お試しください。');
+    }
   };
 
   const folderName = localSettings.targetFolder 
@@ -293,10 +325,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       )}
 
-      {isInline && (
+      {isInline && !autoSave && (
         <div className="inline-footer">
           <button className="primary-btn" onClick={handleSave}>
             💾 保存してメインに戻る
+          </button>
+        </div>
+      )}
+
+      {isInline && autoSave && (
+        <div className="inline-footer">
+          <div className="auto-save-status">
+            {isSaving ? (
+              <span style={{ color: '#f59e0b' }}>⏳ 保存中...</span>
+            ) : (
+              <span style={{ color: '#10b981' }}>✅ 自動保存済み</span>
+            )}
+          </div>
+          <button className="secondary-btn" onClick={onClose}>
+            📋 メインに戻る
           </button>
         </div>
       )}
