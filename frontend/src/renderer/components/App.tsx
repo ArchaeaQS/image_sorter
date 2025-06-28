@@ -26,7 +26,8 @@ const App: React.FC = () => {
     clearBatch 
   } = useImageBatch();
   
-  const [currentFolder, setCurrentFolder] = useState<string | null>(null);
+  // currentFolderはsettings.targetFolderから取得
+  const currentFolder = settings.targetFolder;
   const [totalProcessed, setTotalProcessed] = useState(0);
   const [lastMoveData, setLastMoveData] = useState<Array<{source: string; destination: string}> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +37,6 @@ const App: React.FC = () => {
     try {
       const folder = await selectFolder();
       if (folder) {
-        setCurrentFolder(folder);
         updateSettings({ ...settings, targetFolder: folder });
         setTotalProcessed(0);
         clearBatch();
