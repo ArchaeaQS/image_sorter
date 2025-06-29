@@ -38,6 +38,10 @@ When the user says "常に" (always), document the instruction in CLAUDE.md at a
 
 **Always read .memo directory** - 実装に関するメモは.memo/以下に記載されているので参照する
 
+**Refactoring guidelines** - リファクタリングのときは常に機能やデザインを変更することなく、コードの可読性や拡張性向上のみを目的として作業すること
+
+**Use ultrathink for refactoring** - リファクタリングの際には常にultrathinkを使うこと
+
 ## Project Overview
 
 This is an image sorting application project. The codebase structure and commands will be documented here as the project develops.
