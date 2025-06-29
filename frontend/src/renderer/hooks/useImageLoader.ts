@@ -11,7 +11,7 @@ export const useImageLoader = () => {
 
   const handleLoadImages = async (
     currentFolder: string | null,
-    loadNextBatch: (images: any[], settings: any) => void,
+    loadNextBatch: (images: any[], settings: any, isInitialLoad?: boolean) => void,
     settings: any
   ) => {
     console.log("画像読み込み開始 - currentFolder:", currentFolder);
@@ -34,7 +34,7 @@ export const useImageLoader = () => {
       }
 
       const images = await getImages(currentFolder);
-      loadNextBatch(images, settings);
+      loadNextBatch(images, settings, true); // isInitialLoad = true
     } catch (error) {
       console.error("画像読み込みエラー:", error);
       const message =
@@ -53,7 +53,7 @@ export const useImageLoader = () => {
     currentBatch: any[],
     remainingImages: any[],
     settingsLoading: boolean,
-    loadNextBatch: (images: any[], settings: any) => void,
+    loadNextBatch: (images: any[], settings: any, isInitialLoad?: boolean) => void,
     settings: any
   ) => {
     useEffect(() => {

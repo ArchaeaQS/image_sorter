@@ -26,6 +26,13 @@ const convertWSLPathToWindows = (path: string): string => {
   return path;
 };
 
+const convertWindowsPathToWSL = (path: string): string => {
+  if (path.match(/^[A-Z]:\\/)) {
+    return path.replace(/^C:\\/, "/mnt/c/").replace(/\\/g, "/");
+  }
+  return path;
+};
+
 /**
  * バックエンドサーバーの起動
  */
@@ -37,8 +44,8 @@ const startBackendServer = async (): Promise<boolean> => {
       let backendPath: string;
       
       if (isDev) {
-        // 開発環境: 相対パスでバックエンドディレクトリを指定
-        backendPath = path.join(__dirname, '../../../../backend');
+        // 開発環境: WSL環境を想定してWSLパスを使用
+        backendPath = '/mnt/c/Users/naoki/projects/image_sorter/backend';
       } else {
         // 本番環境: パッケージされたリソース内のバックエンド
         backendPath = path.join((process as any).resourcesPath, 'backend');
@@ -49,34 +56,52 @@ const startBackendServer = async (): Promise<boolean> => {
       // 仮想環境のPythonを探す
       let pythonCmd: string = process.platform === 'win32' ? 'python' : 'python3'; // デフォルト値
       if (isDev) {
-        // 開発環境: .venv内のPythonを優先使用
-        const venvPythonPaths = [
-          path.join(backendPath, '.venv', 'bin', 'python'),     // Linux/WSL形式
-          path.join(backendPath, '.venv', 'Scripts', 'python.exe') // Windows形式
-        ];
+        // WSL環境での特別な処理
+        const isWSL = backendPath.startsWith('/mnt/');
         
-        console.log('Checking venv paths:');
-        let foundVenvPython = false;
-        for (const venvPath of venvPythonPaths) {
-          console.log('  Checking:', venvPath, 'exists:', fs.existsSync(venvPath));
-          if (fs.existsSync(venvPath)) {
-            pythonCmd = venvPath;
-            console.log('Using venv Python:', pythonCmd);
-            foundVenvPython = true;
-            break;
+        if (isWSL) {
+          // WSL環境: 絶対パスで仮想環境のPythonを使用
+          const fullVenvPath = path.join(backendPath, '.venv/bin/python');
+          console.log('WSL environment detected, using full path:', fullVenvPath);
+          pythonCmd = fullVenvPath;
+          
+          console.log('Running WSL Python directly:', pythonCmd, 'main.py');
+          // WSL環境では絶対パスで直接実行
+          backendProcess = spawn(pythonCmd, ['main.py'], {
+            cwd: backendPath,
+            stdio: ['pipe', 'pipe', 'pipe']
+          });
+        } else {
+          // 通常のWindows環境での.venv検索
+          const venvPythonPaths = [
+            path.join(backendPath, '.venv', 'Scripts', 'python.exe'), // Windows形式
+            path.join(backendPath, '.venv', 'bin', 'python'),     // Linux形式
+            path.join(backendPath, '.venv', 'bin', 'python3')     // Linux形式（python3）
+          ];
+          
+          console.log('Checking venv paths:');
+          let foundVenvPython = false;
+          for (const venvPath of venvPythonPaths) {
+            console.log('  Checking:', venvPath, 'exists:', fs.existsSync(venvPath));
+            if (fs.existsSync(venvPath)) {
+              pythonCmd = venvPath;
+              console.log('Using venv Python:', pythonCmd);
+              foundVenvPython = true;
+              break;
+            }
           }
+          
+          if (!foundVenvPython) {
+            // .venvが見つからない場合はシステムのPythonを使用
+            pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+            console.log('Venv not found, using system Python:', pythonCmd);
+          }
+          
+          backendProcess = spawn(pythonCmd, ['main.py'], {
+            cwd: backendPath,
+            stdio: ['pipe', 'pipe', 'pipe']
+          });
         }
-        
-        if (!foundVenvPython) {
-          // .venvが見つからない場合はシステムのPythonを使用
-          pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-          console.log('Venv not found, using system Python:', pythonCmd);
-        }
-        
-        backendProcess = spawn(pythonCmd, ['main.py'], {
-          cwd: backendPath,
-          stdio: ['pipe', 'pipe', 'pipe']
-        });
       } else {
         // 本番環境: スタンドアロン実行ファイルを使用
         const executableName = process.platform === 'win32' ? 'image-sorter-backend.exe' : 'image-sorter-backend';
@@ -251,25 +276,30 @@ function createWindow(): void {
 app.whenReady().then(async () => {
   console.log('Starting Image Sorter...');
   
-  // バックエンドサーバーを起動を試みる
-  const backendStarted = await startBackendServer();
+  // まず既存のバックエンドをチェック
+  let backendRunning = false;
+  try {
+    const response = await axios.get(`${API_BASE_URL}/`);
+    console.log('Backend server is already running:', response.status);
+    backendRunning = true;
+  } catch (error) {
+    console.log('Backend server not running, attempting to start...');
+  }
   
-  if (!backendStarted) {
-    console.error('Failed to start backend server automatically');
-    console.log('Please start backend manually: cd ../backend && uv run python main.py');
+  // バックエンドが起動していない場合のみ起動を試行
+  if (!backendRunning) {
+    const backendStarted = await startBackendServer();
     
-    // バックエンドが手動で起動されているかチェック
-    try {
-      const response = await axios.get(`${API_BASE_URL}/`);
-      console.log('Backend server is already running:', response.status);
-    } catch (error) {
-      console.log('Backend server not running. Please start it manually.');
+    if (!backendStarted) {
+      console.error('Failed to start backend server automatically');
+      console.log('Please start backend manually: cd backend && .venv/bin/python main.py');
+      
       // 警告を表示するが、アプリは終了しない
       const { dialog } = require('electron');
       dialog.showMessageBox({
         type: 'warning',
-        title: '警告',
-        message: 'バックエンドサーバーの自動起動に失敗しました。\n\n手動でバックエンドを起動してください:\n1. WSLまたはコマンドプロンプトを開く\n2. cd ../backend\n3. uv run python main.py\n\nその後、アプリを再起動してください。'
+        title: 'バックエンド起動が必要',
+        message: 'バックエンドサーバーの自動起動に失敗しました。\n\n手動でバックエンドを起動してください:\n\n1. ターミナルを開く\n2. cd /mnt/c/Users/naoki/projects/image_sorter/backend\n3. .venv/bin/python main.py\n\nその後、アプリを使用できます。'
       });
     }
   }
@@ -331,7 +361,12 @@ ipcMain.handle("select-folder", async (): Promise<string | null> => {
   });
 
   if (!result.canceled && result.filePaths.length > 0) {
-    return result.filePaths[0];
+    const selectedPath = result.filePaths[0];
+    console.log('[DEBUG] Selected folder (Windows):', selectedPath);
+    // WindowsパスをWSLパスに変換
+    const wslPath = convertWindowsPathToWSL(selectedPath);
+    console.log('[DEBUG] Converted to WSL path:', wslPath);
+    return wslPath;
   }
   return null;
 });
@@ -341,7 +376,21 @@ ipcMain.handle(
   "check-folder-exists",
   async (event: IpcMainInvokeEvent, folderPath: string): Promise<boolean> => {
     try {
-      return fs.existsSync(folderPath) && fs.statSync(folderPath).isDirectory();
+      // WSLパスの場合はAPIで確認、そうでなければ直接確認
+      if (folderPath.startsWith('/mnt/')) {
+        // WSLパスの場合はAPI経由でチェック
+        try {
+          const apiPath = convertWSLPathToWindows(folderPath);
+          const response = await axios.post(`${API_BASE_URL}/get-images`, { folder_path: apiPath });
+          return true; // API呼び出しが成功すればフォルダは存在
+        } catch (error) {
+          console.log('API check failed for WSL path:', folderPath);
+          return false;
+        }
+      } else {
+        // 通常のパスは直接チェック
+        return fs.existsSync(folderPath) && fs.statSync(folderPath).isDirectory();
+      }
     } catch (error) {
       console.error("Error checking folder:", error);
       return false;
@@ -354,26 +403,42 @@ ipcMain.handle(
   "get-images",
   async (event: IpcMainInvokeEvent, folderPath: string): Promise<ImageInfo[]> => {
     try {
-      // フォルダの存在チェック
-      if (!fs.existsSync(folderPath)) {
-        throw new Error(`指定されたフォルダが存在しません: ${folderPath}`);
-      }
-
-      if (!fs.statSync(folderPath).isDirectory()) {
-        throw new Error(
-          `指定されたパスはフォルダではありません: ${folderPath}`
+      // WSLパスの場合は直接APIを呼び出し、通常パスの場合は存在チェック後API呼び出し
+      if (folderPath.startsWith('/mnt/')) {
+        // WSLパスの場合は直接API呼び出し（バックエンドで存在チェック）
+        console.log('[DEBUG] WSL path detected:', folderPath);
+        const apiPath = convertWSLPathToWindows(folderPath);
+        console.log('[DEBUG] Converted to Windows path:', apiPath);
+        const request: FolderRequest = { folder_path: apiPath };
+        console.log('[DEBUG] Sending get-images request:', request);
+        const response = await axios.post<ImageInfo[]>(
+          `${API_BASE_URL}/get-images`,
+          request
         );
+        console.log('[DEBUG] Get-images response:', response.data.length, 'images');
+        return response.data;
+      } else {
+        // 通常パスの場合は事前チェック
+        if (!fs.existsSync(folderPath)) {
+          throw new Error(`指定されたフォルダが存在しません: ${folderPath}`);
+        }
+
+        if (!fs.statSync(folderPath).isDirectory()) {
+          throw new Error(
+            `指定されたパスはフォルダではありません: ${folderPath}`
+          );
+        }
+
+        // WSLパスをWindowsパスに変換
+        const apiPath = convertWSLPathToWindows(folderPath);
+
+        const request: FolderRequest = { folder_path: apiPath };
+        const response = await axios.post<ImageInfo[]>(
+          `${API_BASE_URL}/get-images`,
+          request
+        );
+        return response.data;
       }
-
-      // WSLパスをWindowsパスに変換
-      const apiPath = convertWSLPathToWindows(folderPath);
-
-      const request: FolderRequest = { folder_path: apiPath };
-      const response = await axios.post<ImageInfo[]>(
-        `${API_BASE_URL}/get-images`,
-        request
-      );
-      return response.data;
     } catch (error) {
       console.error("Error getting images:", error);
       throw error;
@@ -386,17 +451,20 @@ ipcMain.handle(
   "classify-images",
   async (event: IpcMainInvokeEvent, data: ClassifyRequest): Promise<ClassifyResponse> => {
     try {
+      console.log('[DEBUG] Original classify request:', data);
       // WSLパスをWindowsパスに変換
       const convertedData = {
         ...data,
         image_paths: data.image_paths.map(convertWSLPathToWindows),
         target_folder: convertWSLPathToWindows(data.target_folder),
       };
+      console.log('[DEBUG] Converted classify request:', convertedData);
 
       const response = await axios.post<ClassifyResponse>(
         `${API_BASE_URL}/classify`,
         convertedData
       );
+      console.log('[DEBUG] Classify response:', response.data);
       return response.data;
     } catch (error) {
       console.error("Error classifying images:", error);

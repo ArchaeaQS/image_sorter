@@ -4,6 +4,7 @@
 
 import { useState, useCallback } from 'react';
 import { AppSettings, ClassItem } from '../types';
+import { DEFAULT_COLORS } from '../constants';
 
 const DEFAULT_SETTINGS: AppSettings = {
   targetFolder: null,
@@ -14,7 +15,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   thumbnailWidth: 160,
 };
 
-const DEFAULT_CLASS_COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
 
 const STORAGE_KEYS = {
   SETTINGS: 'image-sorter-settings',
@@ -53,7 +53,7 @@ const loadClassItems = (): ClassItem[] => {
   return DEFAULT_SETTINGS.classLabels.map((label, index) => ({
     id: `class-${index}`,
     name: label,
-    color: DEFAULT_CLASS_COLORS[index % DEFAULT_CLASS_COLORS.length],
+    color: DEFAULT_COLORS[index % DEFAULT_COLORS.length],
     order: index,
   }));
 };
@@ -127,4 +127,4 @@ export const useSettings = (): UseSettingsReturn => {
   };
 };
 
-export { DEFAULT_SETTINGS, DEFAULT_CLASS_COLORS };
+export { DEFAULT_SETTINGS };

@@ -26,6 +26,7 @@ const App: React.FC = () => {
     currentBatch,
     imageStates,
     remainingImages,
+    totalImagesCount,
     loadNextBatch,
     toggleImageState,
     clearBatch,
@@ -80,6 +81,16 @@ const App: React.FC = () => {
     );
   };
 
+  const handleUndoClick = () => {
+    handleUndo(currentFolder, () => {
+      // Undo完了後に画像リストを再読み込み
+      if (currentFolder) {
+        console.log("🔄 Undo後の画像リスト再読み込み");
+        handleLoadImages(currentFolder, loadNextBatch, settings);
+      }
+    });
+  };
+
   const handleSaveSettings = async (
     newSettings: AppSettings,
     newClassItems: ClassItem[],
@@ -128,10 +139,8 @@ const App: React.FC = () => {
   };
 
 
-  const totalImages =
-    totalProcessed + remainingImages.length + currentBatch.length;
   const progressPercentage =
-    totalImages > 0 ? (totalProcessed / totalImages) * 100 : 0;
+    totalImagesCount > 0 ? (totalProcessed / totalImagesCount) * 100 : 0;
 
   // 設定読み込み中の場合はローディング表示
   if (settingsLoading) {
@@ -162,7 +171,7 @@ const App: React.FC = () => {
         <Controls
           onSettingsClick={() => setShowSettings(true)}
           onClassify={handleClassifyClick}
-          onUndo={handleUndo}
+          onUndo={handleUndoClick}
           canClassify={currentBatch.length > 0}
           canUndo={lastMoveData !== null && lastMoveData.length > 0}
           isLoading={isLoading}
@@ -172,7 +181,7 @@ const App: React.FC = () => {
         {/* Progress Bar */}
         <ProgressBar
           current={totalProcessed}
-          total={totalImages}
+          total={totalImagesCount}
           percentage={progressPercentage}
         />
       </div>

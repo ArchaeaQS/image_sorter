@@ -65,7 +65,10 @@ export const useImageClassification = () => {
     }
   };
 
-  const handleUndo = async () => {
+  const handleUndo = async (
+    currentFolder: string | null,
+    onUndoComplete?: () => void
+  ) => {
     if (!lastMoveData || lastMoveData.length === 0) {
       alert("取り消すファイル移動がありません");
       return;
@@ -85,6 +88,11 @@ export const useImageClassification = () => {
         );
 
         alert(`${result.restored_files.length}件のファイルを元に戻しました`);
+        
+        // Undo完了後のコールバックを実行（画像リスト再読み込みなど）
+        if (onUndoComplete) {
+          onUndoComplete();
+        }
       }
     } catch (error) {
       console.error("取り消しエラー:", error);

@@ -13,8 +13,9 @@ export interface UseImageBatchReturn {
   currentBatch: ImageInfo[];
   imageStates: ImageStates;
   remainingImages: ImageInfo[];
+  totalImagesCount: number;
   setImageState: (imagePath: string, state: number) => void;
-  loadNextBatch: (images: ImageInfo[], settings: AppSettings) => void;
+  loadNextBatch: (images: ImageInfo[], settings: AppSettings, isInitialLoad?: boolean) => void;
   toggleImageState: (imagePath: string, direction: number, maxState: number) => void;
   clearBatch: () => void;
 }
@@ -26,6 +27,7 @@ export const useImageBatch = (): UseImageBatchReturn => {
   const [currentBatch, setCurrentBatch] = useState<ImageInfo[]>([]);
   const [imageStates, setImageStates] = useState<ImageStates>({});
   const [remainingImages, setRemainingImages] = useState<ImageInfo[]>([]);
+  const [totalImagesCount, setTotalImagesCount] = useState<number>(0);
 
   const setImageState = useCallback((imagePath: string, state: number) => {
     setImageStates(prev => ({
@@ -53,8 +55,14 @@ export const useImageBatch = (): UseImageBatchReturn => {
     });
   }, []);
 
-  const loadNextBatch = useCallback((images: ImageInfo[], settings: AppSettings) => {
+  const loadNextBatch = useCallback((images: ImageInfo[], settings: AppSettings, isInitialLoad = false) => {
     const batchSize = settings.gridCols * settings.gridRows;
+    
+    // 全画像数は最初の読み込み時のみ設定
+    if (isInitialLoad || totalImagesCount === 0) {
+      setTotalImagesCount(images.length);
+    }
+    
     const nextBatch = images.slice(0, batchSize);
     const remaining = images.slice(batchSize);
 
@@ -67,18 +75,20 @@ export const useImageBatch = (): UseImageBatchReturn => {
     setCurrentBatch(nextBatch);
     setRemainingImages(remaining);
     setImageStates(newImageStates);
-  }, []);
+  }, [totalImagesCount]);
 
   const clearBatch = useCallback(() => {
     setCurrentBatch([]);
     setImageStates({});
     setRemainingImages([]);
+    setTotalImagesCount(0);
   }, []);
 
   return {
     currentBatch,
     imageStates,
     remainingImages,
+    totalImagesCount,
     setImageState,
     loadNextBatch,
     toggleImageState,

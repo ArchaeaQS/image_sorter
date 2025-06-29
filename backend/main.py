@@ -115,10 +115,12 @@ def normalize_path(path_str: str) -> str:
     """
     WindowsパスとWSLパスを正規化する
     """
-    # WindowsパスをWSLパスに変換
-    if path_str.startswith('C:\\'):
-        # C:\... -> /mnt/c/...
-        return path_str.replace('C:\\', '/mnt/c/').replace('\\', '/')
+    # WindowsパスをWSLパスに変換（二重エスケープも対応）
+    if path_str.startswith('C:\\\\') or path_str.startswith('C:\\'):
+        # C:\\... または C:\... -> /mnt/c/...
+        normalized = path_str.replace('C:\\\\', '/mnt/c/').replace('C:\\', '/mnt/c/')
+        normalized = normalized.replace('\\\\', '/').replace('\\', '/')
+        return normalized
     return path_str
 
 
@@ -137,10 +139,15 @@ async def get_images(request: FolderRequest) -> list[ImageInfo]:
         HTTPException: If folder doesn't exist
     """
     try:
+        print(f"[DEBUG] Original folder_path: {request.folder_path}")
         # パスを安全にデコードして正規化
         decoded_path = safe_path_decode(request.folder_path)
+        print(f"[DEBUG] Decoded path: {decoded_path}")
         normalized_path = normalize_path(decoded_path)
+        print(f"[DEBUG] Normalized path: {normalized_path}")
         folder_path = Path(normalized_path)
+        print(f"[DEBUG] Final folder_path: {folder_path}")
+        print(f"[DEBUG] Folder exists: {folder_path.exists()}")
 
         if not folder_path.exists():
             raise HTTPException(status_code=404, detail="指定されたフォルダが存在しません")
@@ -158,8 +165,8 @@ async def get_images(request: FolderRequest) -> list[ImageInfo]:
                 safe_filename = file_path.name
                 images.append(ImageInfo(path=safe_path, filename=safe_filename))
                 
-        # Return first batch of images
-        return images[:BATCH_SIZE]
+        # Return all images (フロントエンドでバッチング処理)
+        return images
         
     except PermissionError:
         raise HTTPException(
@@ -189,38 +196,56 @@ async def classify_images(request: ClassifyRequest) -> ClassifyResponse:
     Raises:
         HTTPException: If classification fails
     """
+    print(f"[DEBUG] Classify request - image_paths: {len(request.image_paths)} items")
+    print(f"[DEBUG] Classify request - labels: {request.labels}")
+    print(f"[DEBUG] Classify request - target_folder: {request.target_folder}")
+    
     if len(request.image_paths) != len(request.labels):
         raise HTTPException(
             status_code=400, detail="画像パスとラベルの数が一致しません"
         )
 
     try:
-        # 対象フォルダのパスを安全にデコード
+        # 対象フォルダのパスを安全にデコードして正規化
         decoded_target = safe_path_decode(request.target_folder)
-        target_folder = Path(decoded_target)
+        print(f"[DEBUG] Decoded target_folder: {decoded_target}")
+        normalized_target = normalize_path(decoded_target)
+        print(f"[DEBUG] Normalized target_folder: {normalized_target}")
+        target_folder = Path(normalized_target)
+        print(f"[DEBUG] Target folder path: {target_folder}")
+        print(f"[DEBUG] Target folder exists: {target_folder.exists()}")
 
         if not target_folder.exists():
             raise HTTPException(status_code=404, detail="対象フォルダが存在しません")
 
         moved_files = []
 
-        for image_path, label in zip(request.image_paths, request.labels):
+        for i, (image_path, label) in enumerate(zip(request.image_paths, request.labels)):
+            print(f"[DEBUG] Processing image {i+1}: {image_path} -> {label}")
             # 画像パスを安全にデコード
             decoded_image_path = safe_path_decode(image_path)
+            print(f"[DEBUG] Decoded image path: {decoded_image_path}")
             source_path = Path(decoded_image_path)
+            print(f"[DEBUG] Source path: {source_path}")
+            print(f"[DEBUG] Source exists: {source_path.exists()}")
 
             if not source_path.exists():
+                print(f"[DEBUG] Skipping non-existent file: {source_path}")
                 continue
 
             if not source_path.suffix.lower() in SUPPORTED_EXTENSIONS:
+                print(f"[DEBUG] Skipping unsupported extension: {source_path.suffix}")
                 continue
 
             # ラベルフォルダを作成（UTF-8対応）
             label_folder = target_folder / label
+            print(f"[DEBUG] Label folder: {label_folder}")
             label_folder.mkdir(exist_ok=True)
+            print(f"[DEBUG] Label folder created/exists: {label_folder.exists()}")
 
             # ファイル移動
             dest_path = label_folder / source_path.name
+            print(f"[DEBUG] Destination path: {dest_path}")
 
             # ファイル名の重複を処理
             counter = 1
@@ -232,13 +257,20 @@ async def classify_images(request: ClassifyRequest) -> ClassifyResponse:
                 counter += 1
 
             # ファイル移動を実行（UTF-8パス対応）
-            shutil.move(str(source_path), str(dest_path))
+            print(f"[DEBUG] Moving file: {source_path} -> {dest_path}")
+            try:
+                shutil.move(str(source_path), str(dest_path))
+                print(f"[DEBUG] File move successful")
+            except Exception as move_error:
+                print(f"[DEBUG] File move failed: {move_error}")
+                raise
             
             # 結果に安全なパス文字列を追加
             moved_files.append({
                 "source": safe_path_encode(source_path),
                 "destination": safe_path_encode(dest_path)
             })
+            print(f"[DEBUG] Added to moved_files: {safe_path_encode(source_path)} -> {safe_path_encode(dest_path)}")
 
         return ClassifyResponse(success=True, moved_files=moved_files)
 
