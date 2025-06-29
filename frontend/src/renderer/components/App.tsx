@@ -156,34 +156,37 @@ const App: React.FC = () => {
   return (
     <div className="app-container">
       <div className="main-content">
-        {/* Image Grid */}
-        <ImageGrid
-          images={currentBatch}
-          imageStates={imageStates}
-          classItems={classItems}
-          gridCols={settings.gridCols}
-          thumbnailHeight={settings.thumbnailHeight ?? 120}
-          thumbnailWidth={settings.thumbnailWidth ?? 120}
-          onImageClick={handleImageClick}
-        />
+        {/* メイン画像表示エリア */}
+        <div className="image-content-area">
+          <ImageGrid
+            images={currentBatch}
+            imageStates={imageStates}
+            classItems={classItems}
+            gridCols={settings.gridCols}
+            thumbnailHeight={settings.thumbnailHeight ?? 120}
+            thumbnailWidth={settings.thumbnailWidth ?? 120}
+            onImageClick={handleImageClick}
+          />
+        </div>
 
-        {/* Control buttons */}
-        <Controls
-          onSettingsClick={() => setShowSettings(true)}
-          onClassify={handleClassifyClick}
-          onUndo={handleUndoClick}
-          canClassify={currentBatch.length > 0}
-          canUndo={lastMoveData !== null && lastMoveData.length > 0}
-          isLoading={isLoading}
-          currentFolder={currentFolder}
-        />
-
-        {/* Progress Bar */}
-        <ProgressBar
-          current={totalProcessed}
-          total={totalImagesCount}
-          percentage={progressPercentage}
-        />
+        {/* 最下部固定エリア */}
+        <div className="bottom-fixed-area">
+          <ProgressBar
+            current={totalProcessed}
+            total={totalImagesCount}
+            percentage={progressPercentage}
+          />
+          
+          <Controls
+            onSettingsClick={() => setShowSettings(true)}
+            onClassify={handleClassifyClick}
+            onUndo={handleUndoClick}
+            canClassify={currentBatch.length > 0}
+            canUndo={lastMoveData !== null && lastMoveData.length > 0}
+            isLoading={isLoading}
+            currentFolder={currentFolder}
+          />
+        </div>
       </div>
 
       {/* Settings Modal */}
