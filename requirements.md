@@ -60,8 +60,8 @@
 **技術スタック：**
 
 - フロントエンド：Electron + React + TypeScript
-- バックエンド：FastAPI + Python (uv管理)
-- Electron-FastAPI間通信：HTTP REST API
+- バックエンド：FastAPI + Python (uv 管理)
+- Electron-FastAPI 間通信：HTTP REST API
 - パッケージ管理：npm (フロントエンド), uv (バックエンド)
 - ビルドツール：Webpack (React), TypeScript Compiler (Electron main)
 - コード品質：Black, Flake8 (Python), TypeScript (型チェック)
@@ -81,7 +81,7 @@
 - 設定タブまたは設定ポップアップでの管理
 - 対象フォルダの指定
 - クラス/ラベルの個別追加・削除・順番入れ替え機能
-- グリッド表示の列数・行数設定（初期値10×10）
+- グリッド表示の列数・行数設定（初期値 10×10）
 
 ## データ要件
 
@@ -89,7 +89,7 @@
 
 - 一度に表示・分類：約 100 枚程度
 - 全体の処理対象：数千枚〜数万枚の画像
-- グリッド表示の列数・行数はユーザー設定可能（初期値10×10）
+- グリッド表示の列数・行数はユーザー設定可能（初期値 10×10）
 
 **データ永続化：**
 
