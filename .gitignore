@@ -9,5 +9,7 @@ build/
 __pycache__/
 .memo/
 .diary/
+*/CLAUDE.md
 CLAUDE.md
 test_images/
+test_output/
