@@ -36,7 +36,6 @@ const ImageGrid: React.FC<ImageGridProps> = ({
 
   const getImageBorderColor = (imagePath: string): string => {
     const state = imageStates[imagePath] || 0; // デフォルトを0（最初のクラス）
-    if (state === 0) return 'transparent'; // 最初のクラスは無色
     const classItem = classItems[state];
     return classItem ? classItem.color : 'transparent';
   };
@@ -110,8 +109,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                 <div 
                   className="legend-color"
                   style={{ 
-                    backgroundColor: index === 0 ? 'transparent' : classItem.color,
-                    border: index === 0 ? '2px solid var(--border-color)' : `2px solid ${classItem.color}`
+                    backgroundColor: classItem.color
                   }}
                 />
                 <span className="legend-label">{classItem.name}</span>

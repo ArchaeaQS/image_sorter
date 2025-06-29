@@ -20,7 +20,7 @@ const App: React.FC = () => {
     classItems,
     updateSettings,
     updateBoth,
-    isLoading: settingsLoading,
+    isLoading: settingsLoading = false,
   } = useSettingsFile();
   const {
     currentBatch,
@@ -171,12 +171,6 @@ const App: React.FC = () => {
 
         {/* 最下部固定エリア */}
         <div className="bottom-fixed-area">
-          <ProgressBar
-            current={totalProcessed}
-            total={totalImagesCount}
-            percentage={progressPercentage}
-          />
-          
           <Controls
             onSettingsClick={() => setShowSettings(true)}
             onClassify={handleClassifyClick}
@@ -185,6 +179,12 @@ const App: React.FC = () => {
             canUndo={lastMoveData !== null && lastMoveData.length > 0}
             isLoading={isLoading}
             currentFolder={currentFolder}
+          />
+          
+          <ProgressBar
+            current={totalProcessed}
+            total={totalImagesCount}
+            percentage={progressPercentage}
           />
         </div>
       </div>

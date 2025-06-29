@@ -46,6 +46,16 @@ export interface AppSettings {
   thumbnailWidth?: number; // サムネイル幅(px)
 }
 
+// Hook return types
+export interface UseSettingsReturn {
+  settings: AppSettings;
+  classItems: ClassItem[];
+  updateSettings: (newSettings: AppSettings) => void;
+  updateClassItems: (newClassItems: ClassItem[]) => void;
+  updateBoth: (newSettings: AppSettings, newClassItems: ClassItem[]) => void;
+  isLoading?: boolean; // オプショナル - useSettingsFileでのみ使用
+}
+
 // API request types
 export interface FolderRequest {
   folder_path: string;

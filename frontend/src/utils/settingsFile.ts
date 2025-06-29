@@ -3,7 +3,7 @@
  */
 
 import { AppSettings, ClassItem } from '../types';
-import { DEFAULT_COLORS, THUMBNAIL_LIMITS } from '../constants';
+import { DEFAULT_COLORS, DEFAULT_SETTINGS } from '../constants';
 
 declare global {
   interface Window {
@@ -12,15 +12,6 @@ declare global {
 }
 
 const { ipcRenderer } = window.require('electron');
-
-const DEFAULT_SETTINGS: AppSettings = {
-  targetFolder: null,
-  classLabels: ['テキスト', '図表', '写真'],
-  gridCols: 10,
-  gridRows: 10,
-  thumbnailHeight: THUMBNAIL_LIMITS.DEFAULT_HEIGHT,
-  thumbnailWidth: THUMBNAIL_LIMITS.DEFAULT_WIDTH,
-};
 
 /**
  * Load settings from JSON file

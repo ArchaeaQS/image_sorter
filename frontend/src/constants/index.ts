@@ -4,7 +4,7 @@
 
 // Default color palette for class items
 export const DEFAULT_COLORS = [
-  "",
+  "#ffffff", // White (first class)
   "#ef4444", // Red
   "#10b981", // Green
   "#3b82f6", // Blue
@@ -36,3 +36,13 @@ export const DEBOUNCE_DELAYS = {
   AUTO_SAVE: 300,
   SEARCH: 500,
 } as const;
+
+// Default application settings
+export const DEFAULT_SETTINGS = {
+  targetFolder: null,
+  classLabels: ['テキスト', '図表', '写真'],
+  gridCols: 10,
+  gridRows: 10,
+  thumbnailHeight: 160,
+  thumbnailWidth: 160,
+};

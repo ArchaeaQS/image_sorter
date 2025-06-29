@@ -3,7 +3,8 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { AppSettings, ClassItem } from '../types';
+import { AppSettings, ClassItem, UseSettingsReturn } from '../types';
+import { DEFAULT_SETTINGS, DEFAULT_COLORS } from '../constants';
 import {
   loadSettingsFromFile,
   saveSettingsToFile,
@@ -12,26 +13,6 @@ import {
   watchSettingsFile,
   watchClassItemsFile,
 } from '../utils/settingsFile';
-
-const DEFAULT_SETTINGS: AppSettings = {
-  targetFolder: null,
-  classLabels: ['テキスト', '図表', '写真'],
-  gridCols: 10,
-  gridRows: 10,
-  thumbnailHeight: 160, // デフォルトサムネイル高さ
-  thumbnailWidth: 160, // デフォルトサムネイル幅
-};
-
-const DEFAULT_CLASS_COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
-
-export interface UseSettingsReturn {
-  settings: AppSettings;
-  classItems: ClassItem[];
-  updateSettings: (newSettings: AppSettings) => void;
-  updateClassItems: (newClassItems: ClassItem[]) => void;
-  updateBoth: (newSettings: AppSettings, newClassItems: ClassItem[]) => void;
-  isLoading: boolean;
-}
 
 /**
  * Custom hook for managing settings and class items with file persistence
@@ -67,7 +48,7 @@ export const useSettingsFile = (): UseSettingsReturn => {
           const defaultClassItems = DEFAULT_SETTINGS.classLabels.map((label, index) => ({
             id: `class-${index}`,
             name: label,
-            color: DEFAULT_CLASS_COLORS[index % DEFAULT_CLASS_COLORS.length],
+            color: DEFAULT_COLORS[index % DEFAULT_COLORS.length],
             order: index,
           }));
           setClassItems(defaultClassItems);

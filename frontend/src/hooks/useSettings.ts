@@ -3,17 +3,8 @@
  */
 
 import { useState, useCallback } from 'react';
-import { AppSettings, ClassItem } from '../types';
-import { DEFAULT_COLORS } from '../constants';
-
-const DEFAULT_SETTINGS: AppSettings = {
-  targetFolder: null,
-  classLabels: ['テキスト', '図表', '写真'],
-  gridCols: 10,
-  gridRows: 10,
-  thumbnailHeight: 160,
-  thumbnailWidth: 160,
-};
+import { AppSettings, ClassItem, UseSettingsReturn } from '../types';
+import { DEFAULT_COLORS, DEFAULT_SETTINGS } from '../constants';
 
 
 const STORAGE_KEYS = {
@@ -80,14 +71,6 @@ const saveClassItems = (classItems: ClassItem[]): void => {
   }
 };
 
-export interface UseSettingsReturn {
-  settings: AppSettings;
-  classItems: ClassItem[];
-  updateSettings: (newSettings: AppSettings) => void;
-  updateClassItems: (newClassItems: ClassItem[]) => void;
-  updateBoth: (newSettings: AppSettings, newClassItems: ClassItem[]) => void;
-}
-
 /**
  * Custom hook for managing settings and class items with persistence
  */
@@ -127,4 +110,3 @@ export const useSettings = (): UseSettingsReturn => {
   };
 };
 
-export { DEFAULT_SETTINGS };

@@ -4,7 +4,8 @@
 
 import { useState } from 'react';
 import { ImageInfo, ClassItem, MovedFile } from '../../types';
-import { classifyImages, undoClassification, ApiError } from '../../services/api';
+import { classifyImages, undoClassification } from '../../services/api';
+import { handleClassificationError, handleUndoError } from '../../utils/errorHandler';
 
 export const useImageClassification = () => {
   const [totalProcessed, setTotalProcessed] = useState(0);
@@ -56,10 +57,7 @@ export const useImageClassification = () => {
         loadNextBatch(remainingImages, settings);
       }
     } catch (error) {
-      console.error("分類エラー:", error);
-      const message =
-        error instanceof ApiError ? error.message : "分類処理に失敗しました";
-      alert(message);
+      handleClassificationError(error);
     } finally {
       setIsLoading(false);
     }
@@ -95,12 +93,7 @@ export const useImageClassification = () => {
         }
       }
     } catch (error) {
-      console.error("取り消しエラー:", error);
-      const message =
-        error instanceof ApiError
-          ? error.message
-          : "取り消し処理に失敗しました";
-      alert(message);
+      handleUndoError(error);
     } finally {
       setIsLoading(false);
     }

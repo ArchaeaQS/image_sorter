@@ -3,7 +3,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { getImages, checkFolderExists, ApiError } from '../../services/api';
+import { getImages, checkFolderExists } from '../../services/api';
+import { handleImageLoadError } from '../../utils/errorHandler';
 
 export const useImageLoader = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -36,12 +37,7 @@ export const useImageLoader = () => {
       const images = await getImages(currentFolder);
       loadNextBatch(images, settings, true); // isInitialLoad = true
     } catch (error) {
-      console.error("画像読み込みエラー:", error);
-      const message =
-        error instanceof ApiError
-          ? error.message
-          : "画像の読み込みに失敗しました";
-      alert(message);
+      handleImageLoadError(error);
     } finally {
       setIsLoading(false);
     }
