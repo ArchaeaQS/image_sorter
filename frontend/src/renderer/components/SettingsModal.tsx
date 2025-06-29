@@ -137,11 +137,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleAddClass = () => {
-    if (!newClassName.trim()) return;
+    const trimmedName = newClassName.trim();
+    if (!trimmedName) return;
+    
+    // 重複名チェック
+    const isDuplicate = localClassItems.some(item => 
+      item.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+    
+    if (isDuplicate) {
+      alert(`「${trimmedName}」は既に存在するクラス名です。別の名前を入力してください。`);
+      return;
+    }
     
     const newClass: ClassItem = {
       id: `class-${Date.now()}`,
-      name: newClassName.trim(),
+      name: trimmedName,
       color: DEFAULT_COLORS[localClassItems.length % DEFAULT_COLORS.length],
       order: localClassItems.length,
     };
