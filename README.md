@@ -18,13 +18,22 @@
 
 ## インストール
 
-### 1. ダウンロード
+### 1. ビルド方法
 
-[Releases](../../releases)ページから、お使いの OS に対応したファイルをダウンロードしてください：
+配布ファイルはローカルでビルドして生成します：
 
-- **Windows**: `Image Sorter Setup 1.0.0.exe` (インストーラー) または `Image Sorter 1.0.0.exe` (ポータブル)
-- **macOS**: `Image Sorter-1.0.0.dmg`
+```bash
+# プロジェクトルートで実行
+./build-distribution.sh     # Linux/macOS
+# または
+build-distribution.bat      # Windows
+```
+
+ビルド完了後、`frontend/release/` に以下のファイルが生成されます：
+
+- **Windows**: `Image Sorter Setup 1.0.0.exe`
 - **Linux**: `Image Sorter-1.0.0.AppImage`
+- **macOS**: `Image Sorter-1.0.0.dmg` (Mac環境でのみ生成可能)
 
 ### 2. インストール・実行
 
