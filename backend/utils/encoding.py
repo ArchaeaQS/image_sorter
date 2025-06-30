@@ -42,9 +42,17 @@ def safe_path_encode(path_obj: Path) -> str:
 def normalize_path(path_str: str) -> str:
     """
     WindowsパスとWSLパスを正規化する
+    WSL環境でない場合はWindowsパスをそのまま使用
     """
-    if path_str.startswith('C:\\\\') or path_str.startswith('C:\\'):
+    import os
+    
+    # WSL環境かどうかをチェック
+    is_wsl = os.path.exists('/proc/version') and 'microsoft' in open('/proc/version', 'r').read().lower()
+    
+    if is_wsl and (path_str.startswith('C:\\\\') or path_str.startswith('C:\\')):
+        # WSL環境でのみWindows→WSLパス変換を実行
         normalized = path_str.replace('C:\\\\', '/mnt/c/').replace('C:\\', '/mnt/c/')
         normalized = normalized.replace('\\\\', '/').replace('\\', '/')
         return normalized
+    
     return path_str

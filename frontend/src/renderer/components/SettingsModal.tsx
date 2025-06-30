@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppSettings, ClassItem } from '../../types';
 import { DEFAULT_COLORS, GRID_LIMITS, THUMBNAIL_LIMITS, DEBOUNCE_DELAYS } from '../../constants';
+import { convertWSLPathToWindowsForDisplay } from '../../utils/pathUtils';
 
 export interface SettingsModalProps {
   settings: AppSettings;
@@ -205,10 +206,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
 
-  // 絶対パスをそのまま表示（長い場合は省略表示）
-  const displayPath = localSettings.targetFolder || 'フォルダが選択されていません';
+  // 絶対パスをUI表示用に変換（WSL環境では見やすいWindowsパス形式に変換）
+  const displayPath = localSettings.targetFolder 
+    ? convertWSLPathToWindowsForDisplay(localSettings.targetFolder)
+    : 'フォルダが選択されていません';
   const folderName = localSettings.targetFolder 
-    ? localSettings.targetFolder.split(/[/\\]/).pop() || 'Unknown'
+    ? convertWSLPathToWindowsForDisplay(localSettings.targetFolder).split(/[/\\]/).pop() || 'Unknown'
     : 'フォルダが選択されていません';
 
   const content = (

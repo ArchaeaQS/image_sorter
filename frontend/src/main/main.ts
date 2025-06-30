@@ -20,8 +20,8 @@ const BACKEND_PORT = 8000;
 
 // Utility functions
 const convertWSLPathToWindows = (path: string): string => {
-  if (process.platform === "linux" && path.startsWith("/mnt/")) {
-    return path.replace("/mnt/c/", "C:\\\\").replace(/\//g, "\\\\");
+  if (path.startsWith("/mnt/")) {
+    return path.replace("/mnt/c/", "C:\\").replace(/\//g, "\\");
   }
   return path;
 };
@@ -44,8 +44,9 @@ const startBackendServer = async (): Promise<boolean> => {
       let backendPath: string;
       
       if (isDev) {
-        // 開発環境: WSL環境を想定してWSLパスを使用
-        backendPath = '/mnt/c/Users/naoki/projects/image_sorter/backend';
+        // 開発環境: プロジェクトルートからの相対パス
+        const projectRoot = path.join(__dirname, '..', '..', '..');
+        backendPath = path.join(projectRoot, 'backend');
       } else {
         // 本番環境: パッケージされたリソース内のバックエンド
         backendPath = path.join((process as any).resourcesPath, 'backend');
@@ -299,7 +300,7 @@ app.whenReady().then(async () => {
       dialog.showMessageBox({
         type: 'warning',
         title: 'バックエンド起動が必要',
-        message: 'バックエンドサーバーの自動起動に失敗しました。\n\n手動でバックエンドを起動してください:\n\n1. ターミナルを開く\n2. cd /mnt/c/Users/naoki/projects/image_sorter/backend\n3. .venv/bin/python main.py\n\nその後、アプリを使用できます。'
+        message: 'バックエンドサーバーの自動起動に失敗しました。\n\n手動でバックエンドを起動してください:\n\n1. ターミナルを開く\n2. プロジェクトの backend フォルダに移動\n3. uv run python main.py\n\nその後、アプリを使用できます。'
       });
     }
   }
@@ -362,11 +363,18 @@ ipcMain.handle("select-folder", async (): Promise<string | null> => {
 
   if (!result.canceled && result.filePaths.length > 0) {
     const selectedPath = result.filePaths[0];
-    console.log('[DEBUG] Selected folder (Windows):', selectedPath);
-    // WindowsパスをWSLパスに変換
-    const wslPath = convertWindowsPathToWSL(selectedPath);
-    console.log('[DEBUG] Converted to WSL path:', wslPath);
-    return wslPath;
+    console.log('[DEBUG] Selected folder (original):', selectedPath);
+    
+    // 開発環境でのみWSLパスに変換、配布版ではWindowsパスのまま
+    const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development' || !app.isPackaged;
+    if (isDev) {
+      const wslPath = convertWindowsPathToWSL(selectedPath);
+      console.log('[DEBUG] Converted to WSL path for dev:', wslPath);
+      return wslPath;
+    } else {
+      console.log('[DEBUG] Using Windows path for production:', selectedPath);
+      return selectedPath;
+    }
   }
   return null;
 });

@@ -4,6 +4,7 @@
 
 import React, { useRef } from 'react';
 import { AppSettings } from '../../types';
+import { convertWSLPathToWindowsForDisplay } from '../../utils/pathUtils';
 
 export interface FolderSelectorProps {
   settings: AppSettings;
@@ -72,7 +73,7 @@ const FolderSelector: React.FC<FolderSelectorProps> = ({
           <input
             type="text"
             id="targetFolder"
-            value={settings.targetFolder || ''}
+            value={settings.targetFolder ? convertWSLPathToWindowsForDisplay(settings.targetFolder) : ''}
             onChange={(e) => onSettingsChange({ targetFolder: e.target.value })}
             placeholder="フォルダパスを入力または選択"
             className="form-input folder-path-input"

@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import { convertWSLPathToWindowsForDisplay } from '../../utils/pathUtils';
 
 export interface ControlsProps {
   onSettingsClick: () => void;
@@ -34,8 +35,8 @@ const Controls: React.FC<ControlsProps> = ({
       
       <div className="current-folder-display">
         <span className="folder-label">📁 対象フォルダ:</span>
-        <span className="folder-path" title={currentFolder || 'フォルダが選択されていません'}>
-          {currentFolder || 'フォルダが選択されていません'}
+        <span className="folder-path" title={currentFolder ? convertWSLPathToWindowsForDisplay(currentFolder) : 'フォルダが選択されていません'}>
+          {currentFolder ? convertWSLPathToWindowsForDisplay(currentFolder) : 'フォルダが選択されていません'}
         </span>
       </div>
       

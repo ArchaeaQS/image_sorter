@@ -46,3 +46,15 @@ export const getDirectory = (path: string): string => {
   parts.pop(); // Remove filename
   return parts.join('/');
 };
+
+/**
+ * Convert WSL path to Windows path for UI display
+ * Same as convertPathForElectron but with a more specific name for UI usage
+ */
+export const convertWSLPathToWindowsForDisplay = (path: string): string => {
+  if (path.startsWith('/mnt/')) {
+    // /mnt/c/Users/... → C:\Users\...
+    return path.replace('/mnt/c/', 'C:\\').replace(/\//g, '\\');
+  }
+  return path;
+};
